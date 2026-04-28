@@ -6,6 +6,9 @@ node_modules/
 dist/
 assets/build/
 
+# test coverage
+coverage/
+
 # environment variables
 .env
 .env.production
