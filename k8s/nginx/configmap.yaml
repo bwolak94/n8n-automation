@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: automation-hub
+  labels:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/part-of: automation-hub
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid       /var/run/nginx.pid;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        sendfile      on;
+        keepalive_timeout 65;
+        gzip          on;
+        gzip_types    text/plain text/css application/json application/javascript;
+
+        upstream server_backend {
+            server server:4000;
+            keepalive 32;
+        }
+
+        upstream client_static {
+            server client:80;
+            keepalive 16;
+        }
+
+        server {
+            listen 80;
+            server_name _;
+            client_max_body_size 50m;
+
+            location = /health {
+                proxy_pass         http://server_backend/health;
+                proxy_http_version 1.1;
+                proxy_set_header   Host $host;
+                access_log         off;
+            }
+
+            location /api/ {
+                proxy_pass         http://server_backend/api/;
+                proxy_http_version 1.1;
+                proxy_set_header   Host              $host;
+                proxy_set_header   X-Real-IP         $remote_addr;
+                proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+                proxy_set_header   X-Forwarded-Proto $scheme;
+                proxy_read_timeout 120s;
+            }
+
+            location /socket.io/ {
+                proxy_pass         http://server_backend/socket.io/;
+                proxy_http_version 1.1;
+                proxy_set_header   Upgrade    $http_upgrade;
+                proxy_set_header   Connection "upgrade";
+                proxy_set_header   Host       $host;
+                proxy_read_timeout 3600s;
+            }
+
+            location / {
+                proxy_pass         http://client_static/;
+                proxy_http_version 1.1;
+                proxy_set_header   Host            $host;
+                proxy_set_header   X-Real-IP       $remote_addr;
+                proxy_intercept_errors on;
+                error_page 404 = @spa_fallback;
+            }
+
+            location @spa_fallback {
+                proxy_pass http://client_static/index.html;
+            }
+        }
+    }

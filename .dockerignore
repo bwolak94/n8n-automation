@@ -1,0 +1,41 @@
+# Dependencies
+**/node_modules
+
+# Build output
+**/dist
+**/coverage
+**/.turbo
+
+# Test artifacts
+**/*.test.ts
+**/*.spec.ts
+**/__tests__
+
+# Dev tools
+**/.eslintrc*
+**/.prettierrc*
+**/jest.config*
+**/tsconfig.test.json
+**/tsconfig.tsbuildinfo
+
+# Docker itself
+docker-compose.override.yml
+k8s/
+
+# Git
+.git
+.gitignore
+
+# Secrets — never bake into images
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode
+.idea
+*.swp

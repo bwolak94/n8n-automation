@@ -1,0 +1,45 @@
+# Optional Ingress — use this instead of the nginx Service type:LoadBalancer
+# if your cluster runs the nginx-ingress-controller and you want TLS termination
+# via cert-manager (Let's Encrypt).
+#
+# Install cert-manager: https://cert-manager.io/docs/installation/
+# Install nginx-ingress: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/...
+#
+# kubectl apply -f k8s/ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: automation-hub-ingress
+  namespace: automation-hub
+  labels:
+    app.kubernetes.io/part-of: automation-hub
+  annotations:
+    # nginx-ingress-controller
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # WebSocket support for Socket.io
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    # TLS via cert-manager (comment out if not using HTTPS)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - your-domain.com
+      secretName: automation-hub-tls
+  rules:
+    - host: your-domain.com
+      http:
+        paths:
+          # Everything goes through our nginx deployment which handles routing
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx
+                port:
+                  number: 80
