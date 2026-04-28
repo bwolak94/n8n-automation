@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: automation-hub
+  labels:
+    app.kubernetes.io/name: mongo
+    app.kubernetes.io/part-of: automation-hub
+spec:
+  selector:
+    app: mongo
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: 27017
+  # Headless — stable DNS: mongo-0.mongo.automation-hub.svc.cluster.local
+  clusterIP: None

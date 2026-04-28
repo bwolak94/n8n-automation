@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: automation-hub
+  labels:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/part-of: automation-hub
+spec:
+  selector:
+    app: nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  # LoadBalancer: cloud provider provisions an external IP (AWS ELB, GCP LB, etc.)
+  # Use NodePort or ClusterIP + Ingress if you manage TLS termination yourself.
+  type: LoadBalancer

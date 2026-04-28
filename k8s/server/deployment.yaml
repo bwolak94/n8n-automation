@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  namespace: automation-hub
+  labels:
+    app.kubernetes.io/name: server
+    app.kubernetes.io/part-of: automation-hub
+spec:
+  replicas: 2   # Minimum 2 for zero-downtime rolling updates; HPA scales up
+  selector:
+    matchLabels:
+      app: server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # Never go below desired replica count during deploy
+  template:
+    metadata:
+      labels:
+        app: server
+        app.kubernetes.io/name: server
+        app.kubernetes.io/part-of: automation-hub
+    spec:
+      # Graceful shutdown — finish in-flight requests before SIGKILL
+      terminationGracePeriodSeconds: 30
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001   # matches appuser in Dockerfile
+        runAsGroup: 1001
+
+      containers:
+        - name: server
+          # Update this tag on every release (use :latest only in dev)
+          image: ghcr.io/your-org/automation-hub-server:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+              name: http
+
+          # Environment from ConfigMap (non-sensitive)
+          envFrom:
+            - configMapRef:
+                name: server-config
+
+          # Secrets injected individually (avoid mapping all secrets at once)
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: server-secrets
+                  key: JWT_SECRET
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: server-secrets
+                  key: POSTGRES_PASSWORD
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: server-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: server-secrets
+                  key: STRIPE_SECRET_KEY
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: server-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Readiness: only send traffic when the server + its DB connections are up
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+
+          # Liveness: restart if the server hangs (no response in time)
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 5
+
+          # Startup probe: give the app extra time on cold start (DB connection retry)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            failureThreshold: 12   # 12 × 10s = 2-minute window for DB retries
+            periodSeconds: 10
