@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`BaseNodeCard > matches snapshot — error 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-gray-200" data-testid="base-node-card">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">HTTP Request</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" data-testid="status-badge-error" aria-label="Status: error"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`BaseNodeCard > matches snapshot — idle 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-gray-200" data-testid="base-node-card">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">HTTP Request</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`BaseNodeCard > matches snapshot — running 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-gray-200" data-testid="base-node-card">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">HTTP Request</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-blue-500 animate-pulse" data-testid="status-badge-running" aria-label="Status: running"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`BaseNodeCard > matches snapshot — success 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-gray-200" data-testid="base-node-card">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">HTTP Request</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-green-500" data-testid="status-badge-success" aria-label="Status: success"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;

@@ -51,6 +51,8 @@ export const CreateWorkflowSchema = WorkflowSchema.omit({
   updatedAt: true,
 }).extend({
   status: z.nativeEnum(WorkflowStatus).default(WorkflowStatus.DRAFT),
+  nodes: z.array(WorkflowNodeSchema).default([]),
+  edges: z.array(WorkflowEdgeSchema).default([]),
 });
 
 export const UpdateWorkflowSchema = CreateWorkflowSchema.partial();

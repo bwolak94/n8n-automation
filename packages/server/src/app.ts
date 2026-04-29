@@ -1,6 +1,8 @@
 import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import { openApiSpec } from "./openapi.js";
 import mongoose from "mongoose";
 import { pgPool } from "./config/database.js";
 import { env } from "./config/env.js";
@@ -22,6 +24,9 @@ import { QueueController } from "./modules/queue/QueueController.js";
 import { createQueueRouter } from "./modules/queue/queue.router.js";
 import { WebhookController } from "./modules/webhooks/WebhookController.js";
 import { createWebhookRouter } from "./modules/webhooks/webhook.router.js";
+import { AuthService } from "./modules/auth/AuthService.js";
+import { AuthController } from "./modules/auth/AuthController.js";
+import { createAuthRouter } from "./modules/auth/auth.router.js";
 import type { IEnqueueable } from "./modules/workflows/WorkflowService.js";
 import type { IDLQRepository } from "./modules/queue/IDLQRepository.js";
 
@@ -47,6 +52,9 @@ export function createApp(deps: AppDeps = {}): Express {
   // Parse JSON bodies
   app.use(express.json());
 
+  // OpenAPI / Swagger UI — public, before auth middleware
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
   // Health check — public, before auth middleware
   app.get("/health", async (_req, res) => {
     const mongoStatus =
@@ -67,6 +75,11 @@ export function createApp(deps: AppDeps = {}): Express {
       databases: { mongo: mongoStatus, postgres: pgStatus },
     });
   });
+
+  // ── Auth — public endpoints ─────────────────────────────────────────────────
+  const authService = new AuthService();
+  const authController = new AuthController(authService);
+  app.use("/api/auth", createAuthRouter(authController));
 
   // ── Webhook — public (no auth), rate-limited ────────────────────────────────
   const workflowRepo = new WorkflowRepository();

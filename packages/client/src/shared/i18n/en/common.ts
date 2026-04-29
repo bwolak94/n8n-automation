@@ -1,0 +1,26 @@
+export const common = {
+  save: "Save",
+  cancel: "Cancel",
+  delete: "Delete",
+  confirm: "Confirm",
+  close: "Close",
+  back: "Back",
+  next: "Next",
+  previous: "Previous",
+  loading: "Loading...",
+  error: "Error",
+  success: "Success",
+  warning: "Warning",
+  search: "Search",
+  create: "Create",
+  edit: "Edit",
+  view: "View",
+  yes: "Yes",
+  no: "No",
+  or: "or",
+  and: "and",
+  noResults: "No results found",
+  required: "This field is required",
+} as const;
+
+export type CommonMessages = typeof common;

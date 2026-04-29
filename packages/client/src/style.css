@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Vue Flow core styles ───────────────────────────────────────────────── */
+@import "@vue-flow/core/dist/style.css";
+@import "@vue-flow/core/dist/theme-default.css";
+
+/* ── Edge colour by source node category ────────────────────────────────── */
+.vue-flow__edge.edge-triggers .vue-flow__edge-path { stroke: #3b82f6; }
+.vue-flow__edge.edge-actions  .vue-flow__edge-path { stroke: #8b5cf6; }
+.vue-flow__edge.edge-logic    .vue-flow__edge-path { stroke: #f97316; }
+.vue-flow__edge.edge-data     .vue-flow__edge-path { stroke: #22c55e; }
+.vue-flow__edge.edge-ai       .vue-flow__edge-path { stroke: #ec4899; }
+.vue-flow__edge.edge-communication .vue-flow__edge-path { stroke: #14b8a6; }
+.vue-flow__edge.edge-integrations  .vue-flow__edge-path { stroke: #6366f1; }

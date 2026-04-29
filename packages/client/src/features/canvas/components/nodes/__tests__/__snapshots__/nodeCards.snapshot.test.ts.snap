@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Node card snapshots > AiTransformNodeCard — default 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-pink-400" data-testid="ai-transform-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🤖</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Test Node</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`Node card snapshots > HttpRequestNodeCard — default 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-violet-400" data-testid="http-request-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Test Node</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`Node card snapshots > HttpRequestNodeCard — with URL 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-violet-400" data-testid="http-request-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🌐</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Test Node</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="truncate px-3 pb-2 text-xs text-gray-400">https://api.example.com</div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`Node card snapshots > JavaScriptNodeCard — default 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-orange-400" data-testid="javascript-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">⚡</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Test Node</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;
+
+exports[`Node card snapshots > WebhookNodeCard — default 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 bg-white shadow-sm border-blue-400" data-testid="webhook-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true" data-testid="node-icon">🔗</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Test Node</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle" aria-label="Status: idle"></span></div>
+  <div class="truncate px-3 pb-2 text-xs text-gray-400"> /my-hook</div>
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-source"></div>
+</div>"
+`;

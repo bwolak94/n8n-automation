@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ConditionNodeCard > matches snapshot 1`] = `
+"<div class="relative min-w-[160px] rounded-lg border-2 border-orange-400 bg-white shadow-sm" data-testid="condition-node">
+  <div class="!h-3 !w-3 !bg-gray-400 !border-white" data-testid="handle-target"></div>
+  <div class="flex items-center gap-2 px-3 py-2"><span class="text-base leading-none" aria-hidden="true">🔀</span><span class="flex-1 truncate text-sm font-medium text-gray-800" data-testid="node-label">Check Value</span><span class="h-2 w-2 flex-shrink-0 rounded-full bg-gray-300" data-testid="status-badge-idle"></span></div><!-- True branch -->
+  <div class="flex items-center justify-end gap-1 px-3 pb-1 pt-0"><span class="text-xs font-medium text-green-600" data-testid="handle-true-label">true</span>
+    <div class="!static !relative !h-3 !w-3 !transform-none !bg-green-400 !border-white" data-testid="handle-true"></div>
+  </div><!-- False branch -->
+  <div class="flex items-center justify-end gap-1 px-3 pb-2 pt-0"><span class="text-xs font-medium text-red-600" data-testid="handle-false-label">false</span>
+    <div class="!static !relative !h-3 !w-3 !transform-none !bg-red-400 !border-white" data-testid="handle-false"></div>
+  </div>
+</div>"
+`;
