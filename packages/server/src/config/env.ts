@@ -1,4 +1,4 @@
-import { cleanEnv, port, str } from "envalid";
+import { cleanEnv, num, port, str } from "envalid";
 
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({
@@ -23,6 +23,9 @@ export const env = cleanEnv(process.env, {
 
   // Redis
   REDIS_URL: str({ default: "redis://localhost:6379" }),
+
+  // Worker
+  WORKER_CONCURRENCY: num({ default: 5 }),
 
   // CORS
   CORS_ORIGIN: str({ default: "http://localhost:5173" }),

@@ -14,6 +14,7 @@ const execCtx: ExecutionContext = {
   tenantId: "t-1",
   executionId: "exec-1",
   workflowId: "wf-1",
+  variables: {},
 };
 
 const exprCtx: ExpressionContext = {

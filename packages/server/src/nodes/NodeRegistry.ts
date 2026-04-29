@@ -22,4 +22,8 @@ export class NodeRegistry {
   has(type: string): boolean {
     return this.nodes.has(type);
   }
+
+  listAll(): import("./contracts/INode.js").NodeDefinition[] {
+    return [...this.nodes.values()].map((n) => n.definition);
+  }
 }

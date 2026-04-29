@@ -2,6 +2,7 @@ export interface NodeDefinition {
   readonly type: string;
   readonly name: string;
   readonly description?: string;
+  readonly configSchema?: Readonly<Record<string, unknown>>;
 }
 
 export interface NodeOutput {
@@ -14,6 +15,7 @@ export interface ExecutionContext {
   readonly executionId: string;
   readonly workflowId: string;
   readonly signal?: AbortSignal;
+  readonly variables: Record<string, unknown>;
 }
 
 export interface INode {

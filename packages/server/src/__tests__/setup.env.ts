@@ -14,3 +14,4 @@ process.env["CORS_ORIGIN"] = "http://localhost:5173";
 process.env["STRIPE_SECRET_KEY"] = "";
 process.env["STRIPE_WEBHOOK_SECRET"] = "";
 process.env["ANTHROPIC_API_KEY"] = "";
+process.env["WORKER_CONCURRENCY"] = "2";

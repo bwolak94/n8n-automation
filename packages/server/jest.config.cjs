@@ -27,6 +27,9 @@ const config = {
     "!src/config/env.ts",
     "!src/config/redis.ts",
     "!src/modules/tenants/TenantMember.model.ts",
+    "!src/modules/workflows/Workflow.model.ts",
+    "!src/shared/errors/ForbiddenError.ts",
+    "!src/shared/types/express.d.ts",
     "!src/__tests__/**",
   ],
   coverageThreshold: {

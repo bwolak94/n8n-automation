@@ -40,6 +40,7 @@ export class WorkflowRunner {
       tenantId,
       executionId: log.id,
       workflowId,
+      variables: { ...(workflow.variables ?? {}) },
     };
 
     await this.eventBus.emit("execution.started", {
@@ -62,7 +63,7 @@ export class WorkflowRunner {
 
             const expressionContext: ExpressionContext = {
               nodes: outputs,
-              variables: workflow.variables ?? {},
+              variables: executionContext.variables,
               trigger: triggerData,
             };
 
