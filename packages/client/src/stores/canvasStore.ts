@@ -120,8 +120,10 @@ export const useCanvasStore = defineStore("canvas", () => {
 
   function loadWorkflow(workflow: WorkflowSummary): void {
     workflowId.value = workflow.id;
-    nodes.value = workflow.nodes as CanvasNode[];
-    edges.value = workflow.edges as CanvasEdge[];
+    // Spread to detach from Vue Query's readonly reactive cache proxy —
+    // direct assignment keeps the readonly reference and breaks mutations (e.g. push).
+    nodes.value = workflow.nodes.map((n) => ({ ...n })) as CanvasNode[];
+    edges.value = workflow.edges.map((e) => ({ ...e })) as CanvasEdge[];
     selectedNodeId.value = null;
     isDirty.value = false;
   }

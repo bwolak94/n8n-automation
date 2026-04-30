@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, markRaw, watch } from "vue";
+import { computed, markRaw, watch, ref, onMounted, onUnmounted } from "vue";
+import { getDragNode, clearDragNode } from "../composables/useDragNode.js";
 import {
   VueFlow,
   useVueFlow,
@@ -17,7 +18,6 @@ import AiTransformNodeCard from "./nodes/AiTransformNodeCard.vue";
 import ConditionNodeCard from "./nodes/ConditionNodeCard.vue";
 import WebhookNodeCard from "./nodes/WebhookNodeCard.vue";
 import JavaScriptNodeCard from "./nodes/JavaScriptNodeCard.vue";
-import type { CanvasNode } from "../../../shared/types/index.js";
 
 const canvasStore = useCanvasStore();
 const executionStore = useExecutionStore();
@@ -136,44 +136,62 @@ const { screenToFlowCoordinate, zoomIn, zoomOut, fitView } = useVueFlow();
 
 defineExpose({ zoomIn, zoomOut, fitView });
 
-function onDragOver(event: DragEvent): void {
+const canvasWrapperRef = ref<HTMLDivElement | null>(null);
+
+function isOverCanvas(event: Event): boolean {
+  const el = canvasWrapperRef.value;
+  return !!el && el.contains(event.target as Node);
+}
+
+// Window-level capture listeners fire before any VueFlow internal handler,
+// bypassing stopPropagation() calls inside the VueFlow pane.
+function windowDragOver(event: DragEvent): void {
+  if (!isOverCanvas(event)) return;
   event.preventDefault();
   if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
 }
 
-function onDrop(event: DragEvent): void {
+function windowDrop(event: DragEvent): void {
+  if (!isOverCanvas(event)) return;
   event.preventDefault();
-  if (!event.dataTransfer) return;
 
-  const nodeType = event.dataTransfer.getData("application/node-type");
-  const nodeLabel = event.dataTransfer.getData("application/node-label");
-  const nodeCategory = event.dataTransfer.getData("application/node-category");
-  if (!nodeType) return;
+  const dragData = getDragNode();
+  clearDragNode();
+  if (!dragData) return;
 
   const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
 
   canvasStore.addNode({
-    type: nodeType,
-    label: nodeLabel || nodeType,
-    category: nodeCategory || "actions",
+    type: dragData.type,
+    label: dragData.label || dragData.type,
+    category: dragData.category || "actions",
     position,
     config: {},
   });
 }
 
+onMounted(() => {
+  window.addEventListener("dragover", windowDragOver, true);
+  window.addEventListener("drop", windowDrop, true);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("dragover", windowDragOver, true);
+  window.removeEventListener("drop", windowDrop, true);
+});
+
 // ── Node click → open config panel ─────────────────────────────────────────
 
-function onNodeClick(_event: MouseEvent, node: VFNode): void {
+function onNodeClick({ node }: { node: VFNode }): void {
   canvasStore.selectNode(node.id as string);
 }
 </script>
 
 <template>
   <div
+    ref="canvasWrapperRef"
     class="relative h-full w-full"
     data-testid="workflow-canvas"
-    @dragover.prevent="onDragOver"
-    @drop="onDrop"
   >
     <VueFlow
       :nodes="vfNodes"

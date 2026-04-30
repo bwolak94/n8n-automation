@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { setLocale, LOCALE_STORAGE_KEY, type SupportedLocale } from "../i18n/index.js";
+import { LOCALE_STORAGE_KEY, type SupportedLocale } from "../i18n/index.js";
 
 const { locale } = useI18n({ useScope: "global" });
 

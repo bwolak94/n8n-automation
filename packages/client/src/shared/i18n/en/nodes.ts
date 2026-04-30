@@ -15,4 +15,4 @@ export const nodes = {
   outputLabel: "Output",
 } as const;
 
-export type NodesMessages = typeof nodes;
+export type NodesMessages = Record<keyof typeof nodes, string>;

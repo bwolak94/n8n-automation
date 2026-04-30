@@ -8,7 +8,7 @@ interface Props {
   loading?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), { loading: false });
+withDefaults(defineProps<Props>(), { loading: false });
 const router = useRouter();
 
 const statusColors: Record<string, string> = {

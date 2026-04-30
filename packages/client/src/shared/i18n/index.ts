@@ -28,13 +28,13 @@ export const i18n = createI18n<[EnMessages], SupportedLocale>({
 
 export function setLocale(locale: SupportedLocale): void {
   // vue-i18n composition mode uses a Ref for locale
-  (i18n.global.locale as { value: SupportedLocale }).value = locale;
+  (i18n.global.locale as unknown as { value: SupportedLocale }).value = locale;
   localStorage.setItem(LOCALE_STORAGE_KEY, locale);
   document.documentElement.setAttribute("lang", locale);
 }
 
 export function getCurrentLocale(): SupportedLocale {
-  return (i18n.global.locale as { value: SupportedLocale }).value;
+  return (i18n.global.locale as unknown as { value: SupportedLocale }).value;
 }
 
 // ─── Typed composable (re-exported for convenience) ──────────────────────────

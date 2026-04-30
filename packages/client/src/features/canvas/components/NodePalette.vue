@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { useNodeRegistryStore } from "../../../stores/nodeRegistryStore.js";
 import type { NodeDefinition } from "../../../shared/types/index.js";
+import { setDragNode, clearDragNode } from "../composables/useDragNode.js";
 
 const registryStore = useNodeRegistryStore();
 const search = ref("");
@@ -46,10 +47,15 @@ const filteredGroups = computed(() => {
 
 function onDragStart(event: DragEvent, def: NodeDefinition): void {
   if (!event.dataTransfer) return;
-  event.dataTransfer.setData("application/node-type", def.type);
-  event.dataTransfer.setData("application/node-label", def.label);
-  event.dataTransfer.setData("application/node-category", def.category);
+  // Store in module-level variable — getData() is unreliable in capture-phase drop handlers.
+  setDragNode({ type: def.type, label: def.label, category: def.category });
   event.dataTransfer.effectAllowed = "copy";
+  // Also set dataTransfer as fallback for same-tab bubble-phase drops.
+  event.dataTransfer.setData("text/plain", def.type);
+}
+
+function onDragEnd(): void {
+  clearDragNode();
 }
 </script>
 
@@ -99,6 +105,7 @@ function onDragStart(event: DragEvent, def: NodeDefinition): void {
           :title="def.description"
           draggable="true"
           @dragstart="onDragStart($event, def)"
+          @dragend="onDragEnd"
         >
           <span class="text-base leading-none" aria-hidden="true">{{ def.icon || categoryIcons[def.category] || '📦' }}</span>
           <span class="truncate">{{ def.label }}</span>

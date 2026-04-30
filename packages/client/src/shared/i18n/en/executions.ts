@@ -21,4 +21,5 @@ export const executions = {
   streamingLogs: "Streaming execution logs...",
 } as const;
 
-export type ExecutionsMessages = typeof executions;
+type DeepStringify<T> = T extends object ? { [K in keyof T]: DeepStringify<T[K]> } : string;
+export type ExecutionsMessages = DeepStringify<typeof executions>;

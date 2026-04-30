@@ -17,4 +17,5 @@ export const billing = {
   executionsUsed: "Executions used",
 } as const;
 
-export type BillingMessages = typeof billing;
+type DeepStringify<T> = T extends object ? { [K in keyof T]: DeepStringify<T[K]> } : string;
+export type BillingMessages = DeepStringify<typeof billing>;

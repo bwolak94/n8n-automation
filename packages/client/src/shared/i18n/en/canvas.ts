@@ -18,4 +18,4 @@ export const canvas = {
   emptyCanvas: "Drag a node from the palette to get started",
 } as const;
 
-export type CanvasMessages = typeof canvas;
+export type CanvasMessages = Record<keyof typeof canvas, string>;

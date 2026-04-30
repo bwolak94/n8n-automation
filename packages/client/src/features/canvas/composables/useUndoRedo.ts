@@ -1,8 +1,8 @@
-import { ref, computed } from "vue";
+import { shallowRef, computed } from "vue";
 
 export function useUndoRedo<T>(maxHistory = 50) {
-  const past = ref<T[]>([]);
-  const future = ref<T[]>([]);
+  const past = shallowRef<T[]>([]);
+  const future = shallowRef<T[]>([]);
 
   const canUndo = computed(() => past.value.length > 0);
   const canRedo = computed(() => future.value.length > 0);

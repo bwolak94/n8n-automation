@@ -43,7 +43,7 @@ export class WorkflowQueue {
       "run",
       { workflowId, tenantId, triggerData },
       {
-        jobId: `${tenantId}:${workflowId}`,
+        jobId: `${tenantId}_${workflowId}`,
         attempts: 3,
         backoff: { type: "exponential", delay: 1000 },
         removeOnComplete: { count: 100 },

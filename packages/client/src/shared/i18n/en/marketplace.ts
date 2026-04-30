@@ -15,4 +15,4 @@ export const marketplace = {
   premium: "Premium",
 } as const;
 
-export type MarketplaceMessages = typeof marketplace;
+export type MarketplaceMessages = Record<keyof typeof marketplace, string>;

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { loginApi, logoutApi } from "../shared/api/auth.js";
+import { loginApi } from "../shared/api/auth.js";
 import {
   TOKEN_KEY,
   TENANT_ID_KEY,

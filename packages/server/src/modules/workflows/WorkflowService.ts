@@ -67,6 +67,7 @@ export class WorkflowService {
     try {
       return await this.queue.enqueue(workflowId, triggerData, tenantId);
     } catch (err) {
+      console.error("[WorkflowService] enqueue failed:", err);
       throw new AppError("Failed to enqueue workflow — job queue unavailable", 503, "QUEUE_UNAVAILABLE");
     }
   }

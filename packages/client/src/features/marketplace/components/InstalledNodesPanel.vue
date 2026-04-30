@@ -9,7 +9,7 @@ interface Props {
   uninstalling?: string | null; // packageId currently being uninstalled
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   loading: false,
   uninstalling: null,
 });

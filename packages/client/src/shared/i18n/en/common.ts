@@ -23,4 +23,4 @@ export const common = {
   required: "This field is required",
 } as const;
 
-export type CommonMessages = typeof common;
+export type CommonMessages = Record<keyof typeof common, string>;

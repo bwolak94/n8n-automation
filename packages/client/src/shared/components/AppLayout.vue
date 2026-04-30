@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+
 import { useRoute } from "vue-router";
 import { useAuthStore } from "../../stores/authStore.js";
-import { useTenantStore } from "../../stores/tenantStore.js";
 
 const route = useRoute();
 const authStore = useAuthStore();
-const tenantStore = useTenantStore();
 
-const isAdmin = computed(() => tenantStore.isAdmin);
 
 const navItems = [
   { label: "Dashboard", icon: "📊", path: "/" },

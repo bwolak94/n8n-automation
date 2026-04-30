@@ -55,4 +55,12 @@ export const CreateWorkflowSchema = WorkflowSchema.omit({
   edges: z.array(WorkflowEdgeSchema).default([]),
 });
 
-export const UpdateWorkflowSchema = CreateWorkflowSchema.partial();
+export const UpdateWorkflowSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.nativeEnum(WorkflowStatus).optional(),
+  nodes: z.array(WorkflowNodeSchema).optional(),
+  edges: z.array(WorkflowEdgeSchema).optional(),
+  variables: z.record(z.unknown()).optional(),
+  tags: z.array(z.string()).optional(),
+});
