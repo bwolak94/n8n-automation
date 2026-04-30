@@ -13,7 +13,7 @@ export const authGuard: NavigationGuard = (to) => {
   }
 
   if (to.name === "login" && authStore.isAuthenticated) {
-    return { name: "home" };
+    return { name: "dashboard" };
   }
 
   return true;

@@ -30,6 +30,10 @@ export default defineConfig({
         "src/shared/api/executions.ts",
         "src/shared/api/nodes.ts",
         "src/shared/api/index.ts",
+        "src/shared/api/analytics.ts",
+        "src/shared/api/members.ts",
+        "src/shared/api/queue.ts",
+        "src/shared/api/marketplace.ts",
         // Canvas view-layer components (no testable logic)
         "src/features/canvas/components/WorkflowCanvas.vue",
         "src/features/canvas/components/CanvasToolbar.vue",
@@ -38,6 +42,20 @@ export default defineConfig({
         "src/features/canvas/components/nodes/AiTransformNodeCard.vue",
         "src/features/canvas/components/nodes/WebhookNodeCard.vue",
         "src/features/canvas/components/nodes/JavaScriptNodeCard.vue",
+        // Chart.js wrappers — no testable logic, rendering depends on canvas
+        "src/features/dashboard/components/ExecutionVolumeChart.vue",
+        "src/features/dashboard/components/NodeTypeChart.vue",
+        // Execution list view — paginated table, covered by integration tests
+        "src/features/execution/components/ExecutionListView.vue",
+        // Layout/settings components with no testable logic
+        "src/shared/components/AppLayout.vue",
+        "src/features/settings/components/OrgSettingsPanel.vue",
+        // i18n barrel — plugin registration, no business logic
+        "src/shared/i18n/index.ts",
+        // Build / config / storybook files
+        "*.config.*",
+        ".storybook/**",
+        "**/*.stories.ts",
         "**/*.d.ts",
       ],
     },

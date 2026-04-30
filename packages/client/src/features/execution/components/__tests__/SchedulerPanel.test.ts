@@ -100,4 +100,30 @@ describe("SchedulerPanel", () => {
     const wrapper = mount(SchedulerPanel, { props: { workflowId: "wf-1" } });
     expect(wrapper.find("[data-testid='timezone-select']").exists()).toBe(true);
   });
+
+  it("updates fields when initialSchedule prop changes", async () => {
+    const wrapper = mount(SchedulerPanel, { props: { workflowId: "wf-1" } });
+    await wrapper.setProps({
+      workflowId: "wf-1",
+      initialSchedule: { enabled: true, cronExpression: "0 6 * * 5", timezone: "Europe/Warsaw" },
+    });
+    await flushPromises();
+    const input = wrapper.find<HTMLInputElement>("[data-testid='cron-input']");
+    expect(input.element.value).toBe("0 6 * * 5");
+  });
+
+  it("emits saved event on successful save", async () => {
+    mockUpdateWorkflow.mockImplementation((_payload: unknown, opts: { onSuccess?: () => void }) => {
+      opts?.onSuccess?.();
+    });
+    const wrapper = mount(SchedulerPanel, {
+      props: {
+        workflowId: "wf-emit",
+        initialSchedule: { enabled: true, cronExpression: "0 9 * * 1", timezone: "UTC" },
+      },
+    });
+    await flushPromises();
+    await wrapper.find("[data-testid='scheduler-save-btn']").trigger("click");
+    expect(wrapper.emitted("saved")).toBeTruthy();
+  });
 });

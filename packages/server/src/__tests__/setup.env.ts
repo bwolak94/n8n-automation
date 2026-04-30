@@ -15,3 +15,5 @@ process.env["STRIPE_SECRET_KEY"] = "";
 process.env["STRIPE_WEBHOOK_SECRET"] = "";
 process.env["ANTHROPIC_API_KEY"] = "";
 process.env["WORKER_CONCURRENCY"] = "2";
+process.env["INVITE_SECRET"] = "test-invite-secret-32chars-long!!";
+process.env["MARKETPLACE_UPLOAD_DIR"] = "/tmp/marketplace-test";

@@ -26,4 +26,8 @@ export class NodeRegistry {
   listAll(): import("./contracts/INode.js").NodeDefinition[] {
     return [...this.nodes.values()].map((n) => n.definition);
   }
+
+  getAll(): readonly INode[] {
+    return [...this.nodes.values()];
+  }
 }

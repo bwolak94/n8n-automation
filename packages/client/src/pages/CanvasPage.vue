@@ -28,7 +28,7 @@ watch(workflow, (wf) => {
 
 // Populate node registry when definitions load
 watch(nodeDefs, (defs) => {
-  if (defs && !registryStore.isLoaded) registryStore.setDefinitions(defs);
+  if (defs && !registryStore.isLoaded) registryStore.setDefinitions(defs.items);
 }, { immediate: true });
 
 async function handleSave(): Promise<void> {

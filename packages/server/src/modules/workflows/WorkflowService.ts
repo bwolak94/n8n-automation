@@ -1,4 +1,4 @@
-import { NotFoundError } from "../../shared/errors/index.js";
+import { NotFoundError, AppError } from "../../shared/errors/index.js";
 import type {
   WorkflowRepository,
   ApiWorkflow,
@@ -58,12 +58,16 @@ export class WorkflowService {
     triggerData: Record<string, unknown>
   ): Promise<string> {
     if (!this.queue) {
-      throw new Error("Job queue is not configured");
+      throw new AppError("Job queue is not available — Redis may not be running", 503, "QUEUE_UNAVAILABLE");
     }
     // Verify workflow exists and belongs to tenant
     const wf = await this.repo.findByIdApi(workflowId, tenantId);
     if (!wf) throw new NotFoundError(`Workflow '${workflowId}' not found`);
 
-    return this.queue.enqueue(workflowId, triggerData, tenantId);
+    try {
+      return await this.queue.enqueue(workflowId, triggerData, tenantId);
+    } catch (err) {
+      throw new AppError("Failed to enqueue workflow — job queue unavailable", 503, "QUEUE_UNAVAILABLE");
+    }
   }
 }

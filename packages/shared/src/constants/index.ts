@@ -34,6 +34,7 @@ export const Plan = {
   FREE: "free",
   STARTER: "starter",
   PRO: "pro",
+  BUSINESS: "business",
   ENTERPRISE: "enterprise",
 } as const;
 

@@ -11,3 +11,9 @@ export { EmailNode } from "./EmailNode.js";
 export { DbQueryNode } from "./DbQueryNode.js";
 export { LoopNode } from "./LoopNode.js";
 export { MergeNode } from "./MergeNode.js";
+// ── Integration nodes (built-in marketplace packages) ────────────────────────
+export { SlackNode } from "./SlackNode.js";
+export { TelegramNode } from "./TelegramNode.js";
+export { DiscordNode } from "./DiscordNode.js";
+export { OpenAINode } from "./OpenAINode.js";
+export { GitHubNode } from "./GitHubNode.js";

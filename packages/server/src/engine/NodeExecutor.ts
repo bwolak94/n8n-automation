@@ -1,4 +1,4 @@
-import type { ExecutionContext, NodeOutput } from "../nodes/contracts/INode.js";
+import type { ExecutionContext, INode, NodeOutput } from "../nodes/contracts/INode.js";
 import type { NodeRegistry } from "../nodes/NodeRegistry.js";
 import type { EventBus } from "./EventBus.js";
 import type { RetryManager } from "./RetryManager.js";
@@ -26,7 +26,10 @@ export class NodeExecutor {
     expressionContext: ExpressionContext,
     executionContext: ExecutionContext
   ): Promise<NodeOutput> {
-    const resolvedNode = this.registry.resolve(node.type);
+    const resolvedNode =
+      "resolveForTenant" in this.registry
+        ? (this.registry as unknown as { resolveForTenant(t: string, id: string): INode }).resolveForTenant(node.type, executionContext.tenantId)
+        : this.registry.resolve(node.type);
     const resolvedConfig = this.evaluator.evaluateConfig(
       node.config,
       expressionContext

@@ -129,6 +129,53 @@ export interface CollaboratorUser {
   cursor?: { x: number; y: number };
 }
 
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export interface DailyVolume {
+  date: string;
+  success: number;
+  failed: number;
+}
+
+export interface NodeTypeUsage {
+  type: string;
+  count: number;
+}
+
+export interface RecentExecution {
+  id: string;
+  workflowId: string;
+  workflowName?: string;
+  status: string;
+  durationMs?: number;
+  startedAt: string;
+}
+
+export interface AnalyticsData {
+  totalWorkflows: number;
+  executionsThisMonth: number;
+  successRate: number;
+  aiTokensUsed: number;
+  aiTokenLimit: number;
+  recentExecutions: RecentExecution[];
+  volumeByDay: DailyVolume[];
+  nodeTypeUsage: NodeTypeUsage[];
+}
+
+// ─── Members ──────────────────────────────────────────────────────────────────
+
+export interface TenantMember {
+  userId: string;
+  email: string;
+  role: string;
+  joinedAt: string;
+}
+
+export interface InviteMemberData {
+  email: string;
+  role: "admin" | "editor" | "viewer";
+}
+
 // ─── UI ───────────────────────────────────────────────────────────────────────
 
 export type NotificationType = "info" | "success" | "warning" | "error";

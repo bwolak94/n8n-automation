@@ -14,7 +14,13 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/",
-    name: "home",
+    name: "dashboard",
+    component: () => import("../pages/DashboardPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/workflows",
+    name: "workflows",
     component: () => import("../pages/WorkflowsPage.vue"),
     meta: { requiresAuth: true },
   },
@@ -34,6 +40,18 @@ const routes: RouteRecordRaw[] = [
     path: "/dlq",
     name: "dlq",
     component: () => import("../pages/DlqPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/marketplace",
+    name: "marketplace",
+    component: () => import("../pages/MarketplacePage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/settings",
+    name: "settings",
+    component: () => import("../pages/SettingsPage.vue"),
     meta: { requiresAuth: true },
   },
 ];

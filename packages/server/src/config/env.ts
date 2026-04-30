@@ -10,6 +10,7 @@ export const env = cleanEnv(process.env, {
   // Authentication
   JWT_SECRET: str(),
   JWT_EXPIRES_IN: str({ default: "7d" }),
+  INVITE_SECRET: str({ default: "invite-secret-change-in-production" }),
 
   // MongoDB
   MONGODB_URI: str(),
@@ -36,4 +37,7 @@ export const env = cleanEnv(process.env, {
 
   // Anthropic (optional — AI node)
   ANTHROPIC_API_KEY: str({ default: "" }),
+
+  // Marketplace
+  MARKETPLACE_UPLOAD_DIR: str({ default: "uploads/marketplace" }),
 });

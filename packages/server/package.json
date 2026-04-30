@@ -10,7 +10,9 @@
     "start": "node dist/server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist coverage"
+    "clean": "rm -rf dist coverage",
+    "seed:integrations": "tsx src/scripts/seedIntegrations.ts",
+    "migrate:node-packages": "tsx src/scripts/migrateNodePackages.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",

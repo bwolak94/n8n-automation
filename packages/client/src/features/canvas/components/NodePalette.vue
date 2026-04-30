@@ -37,7 +37,7 @@ const filteredGroups = computed(() => {
         ? defs.filter(
             (d) =>
               d.label.toLowerCase().includes(query) ||
-              d.description.toLowerCase().includes(query)
+              (d.description ?? "").toLowerCase().includes(query)
           )
         : defs,
     }))
