@@ -1,11 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* ── Vue Flow core styles ───────────────────────────────────────────────── */
 @import "@vue-flow/core/dist/style.css";
 @import "@vue-flow/core/dist/theme-default.css";
-@import "@vue-flow/background/dist/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ── Edge colour by source node category ────────────────────────────────── */
 .vue-flow__edge.edge-triggers .vue-flow__edge-path { stroke: #3b82f6; }

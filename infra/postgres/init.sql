@@ -7,8 +7,8 @@
 
 CREATE TABLE IF NOT EXISTS executions (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id    VARCHAR(24)  NOT NULL,
-  workflow_id  VARCHAR(24)  NOT NULL,
+  tenant_id    VARCHAR(36)  NOT NULL,
+  workflow_id  VARCHAR(36)  NOT NULL,
   status       VARCHAR(20)  NOT NULL,
   trigger      VARCHAR(20)  NOT NULL,
   trigger_data JSONB,

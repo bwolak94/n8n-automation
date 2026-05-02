@@ -58,7 +58,7 @@ export class WorkflowRunner {
 
       for (const group of groups) {
         const results = await Promise.allSettled(
-          group.map((nodeId) => {
+          group.map(async (nodeId) => {
             const node = workflow.nodes.find((n) => n.id === nodeId)!;
 
             const expressionContext: ExpressionContext = {
@@ -74,12 +74,42 @@ export class WorkflowRunner {
                 ? outputs[parentEdges[parentEdges.length - 1].from]
                 : triggerData;
 
-            return this.nodeExecutor.execute(
-              node,
+            const stepStartedAt = new Date();
+            console.log(`[WorkflowRunner] createStep for node ${nodeId} (${node.type})`);
+            const step = await this.executionLogRepo.createStep({
+              executionId: log.id,
+              nodeId,
+              nodeType: node.type,
+              status: "running",
               input,
-              expressionContext,
-              executionContext
-            );
+              startedAt: stepStartedAt,
+            });
+
+            try {
+              const output = await this.nodeExecutor.execute(
+                node,
+                input,
+                expressionContext,
+                executionContext
+              );
+              const completedAt = new Date();
+              await this.executionLogRepo.updateStep(step.id, {
+                status: "completed",
+                output: output.data,
+                completedAt,
+                durationMs: completedAt.getTime() - stepStartedAt.getTime(),
+              });
+              return output;
+            } catch (err) {
+              const completedAt = new Date();
+              await this.executionLogRepo.updateStep(step.id, {
+                status: "failed",
+                error: err instanceof Error ? err.message : String(err),
+                completedAt,
+                durationMs: completedAt.getTime() - stepStartedAt.getTime(),
+              });
+              throw err;
+            }
           })
         );
 

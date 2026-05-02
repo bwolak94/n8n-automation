@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 import { pgPool } from "../../config/database.js";
 import type {
   ExecutionLog,
+  ExecutionStep,
   IExecutionLogRepository,
 } from "../../engine/types.js";
 
@@ -130,6 +131,45 @@ export class ExecutionLogRepository implements IExecutionLogRepository {
     values.push(id);
     await this.pool.query(
       `UPDATE executions SET ${sets.join(", ")} WHERE id = $${idx}`,
+      values
+    );
+  }
+
+  async createStep(step: Omit<ExecutionStep, "id">): Promise<ExecutionStep> {
+    const { rows } = await this.pool.query<Record<string, unknown>>(
+      `INSERT INTO execution_steps
+         (execution_id, node_id, node_type, status, input, started_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, execution_id, node_id, node_type, status, started_at`,
+      [step.executionId, step.nodeId, step.nodeType, step.status, step.input ? JSON.stringify(step.input) : null, step.startedAt]
+    );
+    const row = rows[0];
+    return {
+      id: row["id"] as string,
+      executionId: row["execution_id"] as string,
+      nodeId: row["node_id"] as string,
+      nodeType: row["node_type"] as string,
+      status: row["status"] as ExecutionStep["status"],
+      startedAt: row["started_at"] as Date,
+    };
+  }
+
+  async updateStep(id: string, updates: Partial<Omit<ExecutionStep, "id">>): Promise<void> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (updates.status !== undefined) { sets.push(`status = $${idx++}`); values.push(updates.status); }
+    if (updates.completedAt !== undefined) { sets.push(`completed_at = $${idx++}`); values.push(updates.completedAt); }
+    if (updates.durationMs !== undefined) { sets.push(`duration_ms = $${idx++}`); values.push(updates.durationMs); }
+    if (updates.output !== undefined) { sets.push(`output = $${idx++}`); values.push(JSON.stringify(updates.output)); }
+    if (updates.error !== undefined) { sets.push(`error = $${idx++}`); values.push(updates.error); }
+
+    if (sets.length === 0) return;
+
+    values.push(id);
+    await this.pool.query(
+      `UPDATE execution_steps SET ${sets.join(", ")} WHERE id = $${idx}`,
       values
     );
   }

@@ -51,7 +51,23 @@ export interface IWorkflowRepository {
   ): Promise<WorkflowDefinition | null>;
 }
 
+export interface ExecutionStep {
+  readonly id: string;
+  readonly executionId: string;
+  readonly nodeId: string;
+  readonly nodeType: string;
+  readonly status: "running" | "completed" | "failed";
+  readonly startedAt: Date;
+  readonly completedAt?: Date;
+  readonly durationMs?: number;
+  readonly input?: unknown;
+  readonly output?: unknown;
+  readonly error?: string;
+}
+
 export interface IExecutionLogRepository {
   create(log: Omit<ExecutionLog, "id">): Promise<ExecutionLog>;
   update(id: string, updates: Partial<Omit<ExecutionLog, "id">>): Promise<void>;
+  createStep(step: Omit<ExecutionStep, "id">): Promise<ExecutionStep>;
+  updateStep(id: string, updates: Partial<Omit<ExecutionStep, "id">>): Promise<void>;
 }

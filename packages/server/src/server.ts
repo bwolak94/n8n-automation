@@ -1,7 +1,7 @@
 import { createApp } from "./app.js";
 import { connectDatabases, pgPool } from "./config/database.js";
 import { env } from "./config/env.js";
-import { redis } from "./config/redis.js";
+import { redis, bullmqRedis } from "./config/redis.js";
 import { createBullMQDLQRepository } from "./modules/queue/BullMQDLQRepository.js";
 import { createWorkflowQueue } from "./jobs/queues/workflowQueue.js";
 import { createDLQQueue } from "./jobs/queues/dlqQueue.js";
@@ -21,11 +21,11 @@ import { ExecutionLogRepository } from "./modules/executions/ExecutionLogReposit
 async function main(): Promise<void> {
   await connectDatabases();
 
-  const workflowQueue = createWorkflowQueue(redis);
-  const dlqRepository = createBullMQDLQRepository(redis);
+  const workflowQueue = createWorkflowQueue(bullmqRedis);
+  const dlqRepository = createBullMQDLQRepository(bullmqRedis, workflowQueue);
 
   // ── Execution engine ────────────────────────────────────────────────────────
-  const dlqQueue = createDLQQueue(redis);
+  const dlqQueue = createDLQQueue(bullmqRedis);
   const eventBus = new EventBus();
   const evaluator = new ExpressionEvaluator();
   const retryManager = new RetryManager(dlqQueue);
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   const workerService = createWorkflowWorkerService(
     runner,
     dlqQueue,
-    redis,
+    bullmqRedis,
     env.WORKER_CONCURRENCY
   );
 
@@ -66,6 +66,7 @@ async function main(): Promise<void> {
       await workflowQueue.close();
       await dlqQueue.close();
       await redis.quit();
+      await bullmqRedis.quit();
       console.log("[Server] Shutdown complete");
       process.exit(0);
     });
