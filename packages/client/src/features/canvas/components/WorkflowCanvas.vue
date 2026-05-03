@@ -13,14 +13,24 @@ import {
 import { Background } from "@vue-flow/background";
 import { useCanvasStore } from "../../../stores/canvasStore.js";
 import { useExecutionStore } from "../../../stores/executionStore.js";
+import { useCollaboration } from "../composables/useCollaboration.js";
+import CollaborationOverlay from "./CollaborationOverlay.vue";
 import HttpRequestNodeCard from "./nodes/HttpRequestNodeCard.vue";
 import AiTransformNodeCard from "./nodes/AiTransformNodeCard.vue";
 import ConditionNodeCard from "./nodes/ConditionNodeCard.vue";
 import WebhookNodeCard from "./nodes/WebhookNodeCard.vue";
 import JavaScriptNodeCard from "./nodes/JavaScriptNodeCard.vue";
 
+const props = defineProps<{ workflowId?: string }>();
+
 const canvasStore = useCanvasStore();
 const executionStore = useExecutionStore();
+
+// ── Collaboration ───────────────────────────────────────────────────────────
+
+const { sendCursor } = props.workflowId
+  ? useCollaboration(props.workflowId)
+  : { sendCursor: (_c: { x: number; y: number }) => undefined };
 
 // ── Custom node type registry ───────────────────────────────────────────────
 
@@ -143,8 +153,6 @@ function isOverCanvas(event: Event): boolean {
   return !!el && el.contains(event.target as Node);
 }
 
-// Window-level capture listeners fire before any VueFlow internal handler,
-// bypassing stopPropagation() calls inside the VueFlow pane.
 function windowDragOver(event: DragEvent): void {
   if (!isOverCanvas(event)) return;
   event.preventDefault();
@@ -170,6 +178,20 @@ function windowDrop(event: DragEvent): void {
   });
 }
 
+// ── Cursor tracking for collaboration ──────────────────────────────────────
+
+function onMouseMove(event: MouseEvent): void {
+  if (!props.workflowId) return;
+  const el = canvasWrapperRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const flowPos = screenToFlowCoordinate({
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  });
+  sendCursor(flowPos);
+}
+
 onMounted(() => {
   window.addEventListener("dragover", windowDragOver, true);
   window.addEventListener("drop", windowDrop, true);
@@ -192,6 +214,7 @@ function onNodeClick({ node }: { node: VFNode }): void {
     ref="canvasWrapperRef"
     class="relative h-full w-full"
     data-testid="workflow-canvas"
+    @mousemove="onMouseMove"
   >
     <VueFlow
       :nodes="vfNodes"
@@ -216,5 +239,8 @@ function onNodeClick({ node }: { node: VFNode }): void {
         </p>
       </div>
     </VueFlow>
+
+    <!-- Collaboration overlay (cursors + avatars) -->
+    <CollaborationOverlay v-if="workflowId" />
   </div>
 </template>

@@ -123,6 +123,160 @@ describe("ExecutionLogRepository", () => {
     });
   });
 
+  // ── createStep ───────────────────────────────────────────────────────────
+
+  describe("createStep", () => {
+    it("inserts a new execution_step row and returns the mapped result", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            id: "step-1",
+            execution_id: "exec-1",
+            node_id: "n1",
+            node_type: "http_request",
+            status: "running",
+            started_at: new Date("2024-01-01"),
+          },
+        ],
+        rowCount: 1,
+      });
+
+      const repo = new ExecutionLogRepository(pool);
+      const result = await repo.createStep({
+        executionId: "exec-1",
+        nodeId: "n1",
+        nodeType: "http_request",
+        status: "running",
+        startedAt: new Date("2024-01-01"),
+      });
+
+      expect(result.id).toBe("step-1");
+      expect(result.executionId).toBe("exec-1");
+      expect(result.nodeId).toBe("n1");
+      expect(result.nodeType).toBe("http_request");
+      expect(result.status).toBe("running");
+    });
+
+    it("serialises input as JSON when provided", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({
+        rows: [{ id: "s1", execution_id: "e1", node_id: "n1", node_type: "t", status: "running", started_at: new Date() }],
+        rowCount: 1,
+      });
+
+      const repo = new ExecutionLogRepository(pool);
+      await repo.createStep({
+        executionId: "e1",
+        nodeId: "n1",
+        nodeType: "t",
+        status: "running",
+        startedAt: new Date(),
+        input: { key: "value" },
+      });
+
+      const [, params] = (pool.query as jest.Mock).mock.calls[0] as [string, unknown[]];
+      expect(params[4]).toBe(JSON.stringify({ key: "value" }));
+    });
+
+    it("passes null for input when not provided", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({
+        rows: [{ id: "s1", execution_id: "e1", node_id: "n1", node_type: "t", status: "running", started_at: new Date() }],
+        rowCount: 1,
+      });
+
+      const repo = new ExecutionLogRepository(pool);
+      await repo.createStep({ executionId: "e1", nodeId: "n1", nodeType: "t", status: "running", startedAt: new Date() });
+
+      const [, params] = (pool.query as jest.Mock).mock.calls[0] as [string, unknown[]];
+      expect(params[4]).toBeNull();
+    });
+  });
+
+  // ── updateStep ────────────────────────────────────────────────────────────
+
+  describe("updateStep", () => {
+    it("builds SET clause for status field", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [], rowCount: 1 });
+
+      const repo = new ExecutionLogRepository(pool);
+      await repo.updateStep("step-1", { status: "completed" });
+
+      const [sql, params] = (pool.query as jest.Mock).mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain("status");
+      expect(params).toContain("completed");
+    });
+
+    it("builds SET clause for completedAt, durationMs, output and error", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({ rows: [], rowCount: 1 });
+      const completedAt = new Date();
+
+      const repo = new ExecutionLogRepository(pool);
+      await repo.updateStep("step-1", {
+        status: "completed",
+        completedAt,
+        durationMs: 250,
+        output: { result: "ok" },
+        error: "some error",
+      });
+
+      const [sql, params] = (pool.query as jest.Mock).mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain("completed_at");
+      expect(sql).toContain("duration_ms");
+      expect(sql).toContain("output");
+      expect(sql).toContain("error");
+      expect(params).toContain(completedAt);
+      expect(params).toContain(250);
+      expect(params).toContain(JSON.stringify({ result: "ok" }));
+    });
+
+    it("skips the query when no fields are provided", async () => {
+      const pool = makePool();
+
+      const repo = new ExecutionLogRepository(pool);
+      await repo.updateStep("step-1", {});
+
+      expect(pool.query).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── cancel ────────────────────────────────────────────────────────────────
+
+  describe("cancel", () => {
+    it("returns true when a row was updated", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({ rowCount: 1 });
+
+      const repo = new ExecutionLogRepository(pool);
+      const result = await repo.cancel("exec-1", "t1");
+
+      expect(result).toBe(true);
+    });
+
+    it("returns false when no row was updated (already finished)", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({ rowCount: 0 });
+
+      const repo = new ExecutionLogRepository(pool);
+      const result = await repo.cancel("exec-1", "t1");
+
+      expect(result).toBe(false);
+    });
+
+    it("handles null rowCount gracefully", async () => {
+      const pool = makePool();
+      (pool.query as jest.Mock).mockResolvedValue({ rowCount: null });
+
+      const repo = new ExecutionLogRepository(pool);
+      const result = await repo.cancel("exec-1", "t1");
+
+      expect(result).toBe(false);
+    });
+  });
+
   // ── findByWorkflowId ──────────────────────────────────────────────────────
 
   describe("findByWorkflowId", () => {

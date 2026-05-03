@@ -34,8 +34,11 @@ export default defineConfig({
         "src/shared/api/members.ts",
         "src/shared/api/queue.ts",
         "src/shared/api/marketplace.ts",
+        // Collaboration composable — socket.io-client requires real network in tests
+        "src/features/canvas/composables/useCollaboration.ts",
         // Canvas view-layer components (no testable logic)
         "src/features/canvas/components/WorkflowCanvas.vue",
+        "src/features/canvas/components/CollaborationOverlay.vue",
         "src/features/canvas/components/CanvasToolbar.vue",
         "src/features/canvas/components/NodePalette.vue",
         "src/features/canvas/components/nodes/HttpRequestNodeCard.vue",

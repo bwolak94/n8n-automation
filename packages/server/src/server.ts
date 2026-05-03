@@ -1,7 +1,9 @@
+import { createServer } from "http";
 import { createApp } from "./app.js";
 import { connectDatabases, pgPool } from "./config/database.js";
 import { env } from "./config/env.js";
 import { redis, bullmqRedis } from "./config/redis.js";
+import { Redis } from "ioredis";
 import { createBullMQDLQRepository } from "./modules/queue/BullMQDLQRepository.js";
 import { createWorkflowQueue } from "./jobs/queues/workflowQueue.js";
 import { createDLQQueue } from "./jobs/queues/dlqQueue.js";
@@ -17,6 +19,8 @@ import { registerBuiltInNodes } from "./nodes/registerBuiltInNodes.js";
 import { ClaudeProvider } from "./nodes/ai/ClaudeProvider.js";
 import { WorkflowRepository } from "./modules/workflows/WorkflowRepository.js";
 import { ExecutionLogRepository } from "./modules/executions/ExecutionLogRepository.js";
+import { OpLogRepository } from "./modules/collaboration/OpLogRepository.js";
+import { CollaborationGateway } from "./modules/collaboration/CollaborationGateway.js";
 
 async function main(): Promise<void> {
   await connectDatabases();
@@ -50,10 +54,25 @@ async function main(): Promise<void> {
     env.WORKER_CONCURRENCY
   );
 
-  // Pass shared registry so API and worker use the same node definitions
+  // ── Express app ─────────────────────────────────────────────────────────────
   const app = createApp({ workflowQueue, dlqRepository, nodeRegistry: tenantNodeRegistry });
 
-  const server = app.listen(env.PORT, () => {
+  // ── HTTP server (shared with Socket.io) ─────────────────────────────────────
+  const httpServer = createServer(app);
+
+  // ── Collaboration gateway (Socket.io + Redis pub/sub) ───────────────────────
+  const pubClient = new Redis(env.REDIS_URL);
+  const subClient = new Redis(env.REDIS_URL);
+  const opLogRepo = new OpLogRepository();
+  const collaborationGateway = new CollaborationGateway(
+    httpServer,
+    opLogRepo,
+    env.CORS_ORIGIN,
+    pubClient,
+    subClient
+  );
+
+  httpServer.listen(env.PORT, () => {
     console.log(
       `[Server] Listening on port ${env.PORT} in ${env.NODE_ENV} mode`
     );
@@ -61,10 +80,13 @@ async function main(): Promise<void> {
 
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[Server] Received ${signal}, shutting down gracefully...`);
-    server.close(async () => {
+    httpServer.close(async () => {
+      await collaborationGateway.io.close();
       await workerService.close();
       await workflowQueue.close();
       await dlqQueue.close();
+      await pubClient.quit();
+      await subClient.quit();
       await redis.quit();
       await bullmqRedis.quit();
       console.log("[Server] Shutdown complete");

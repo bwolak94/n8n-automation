@@ -33,6 +33,7 @@ const config = {
     "!src/modules/marketplace/MarketplaceRepository.ts",
     "!src/modules/marketplace/IntegrationRepository.ts",
     "!src/modules/marketplace/IntegrationTemplate.model.ts",
+    "!src/modules/collaboration/OpLog.model.ts",
     "!src/shared/types/express.d.ts",
     "!src/__tests__/**",
     "!src/scripts/**",
