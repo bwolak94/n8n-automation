@@ -53,6 +53,28 @@ export class WorkflowQueue {
     return job.id ?? "";
   }
 
+  /**
+   * Enqueue a delayed resume job for a suspended execution.
+   * The job will be picked up by the worker after `delayMs` milliseconds.
+   */
+  async enqueueResume(
+    executionId: string,
+    tenantId: string,
+    delayMs: number
+  ): Promise<string> {
+    const job = await this.queue.add(
+      "resume",
+      { workflowId: executionId, tenantId, triggerData: {} },
+      {
+        jobId: `resume:${executionId}`,
+        delay: delayMs,
+        removeOnComplete: { count: 100 },
+        removeOnFail: false,
+      }
+    );
+    return job.id ?? "";
+  }
+
   async close(): Promise<void> {
     await this.queue.close();
   }

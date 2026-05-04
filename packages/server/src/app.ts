@@ -33,6 +33,11 @@ import { MembersController } from "./modules/members/MembersController.js";
 import { createMembersRouter } from "./modules/members/members.router.js";
 import { WebhookController } from "./modules/webhooks/WebhookController.js";
 import { createWebhookRouter } from "./modules/webhooks/webhook.router.js";
+import { WebhookRepository } from "./modules/webhooks/WebhookRepository.js";
+import { WebhookHandler } from "./modules/webhooks/WebhookHandler.js";
+import { createIncomingWebhookRouter } from "./modules/webhooks/incoming.webhook.router.js";
+import { WebhookManagementController } from "./modules/webhooks/WebhookManagementController.js";
+import { createWebhookManagementRouter } from "./modules/webhooks/webhook.management.router.js";
 import { AuthService } from "./modules/auth/AuthService.js";
 import { AuthController } from "./modules/auth/AuthController.js";
 import { createAuthRouter } from "./modules/auth/auth.router.js";
@@ -50,6 +55,14 @@ import { IntegrationRepository } from "./modules/marketplace/IntegrationReposito
 import { IntegrationService } from "./modules/marketplace/IntegrationService.js";
 import { IntegrationController } from "./modules/marketplace/IntegrationController.js";
 import { createMarketplaceRouter } from "./modules/marketplace/marketplace.router.js";
+import { CredentialEncryption } from "./modules/credentials/CredentialEncryption.js";
+import { CredentialRepository } from "./modules/credentials/CredentialRepository.js";
+import { CredentialService } from "./modules/credentials/CredentialService.js";
+import { CredentialController } from "./modules/credentials/CredentialController.js";
+import { createCredentialRouter } from "./modules/credentials/credential.router.js";
+import { DatabaseClientFactory } from "./nodes/implementations/db/DatabaseClientFactory.js";
+import { BranchSyncManager } from "./engine/BranchSyncManager.js";
+import { redis } from "./config/redis.js";
 import type { IEnqueueable } from "./modules/workflows/WorkflowService.js";
 import type { IDLQRepository } from "./modules/queue/IDLQRepository.js";
 
@@ -106,7 +119,13 @@ export function createApp(deps: AppDeps = {}): Express {
   const authController = new AuthController(authService);
   app.use("/api/auth", createAuthRouter(authController));
 
-  // ── Webhook — public (no auth), rate-limited ────────────────────────────────
+  // ── Incoming webhooks — public (no auth), raw body for HMAC ────────────────
+  // IMPORTANT: mounted before express.json() to preserve raw body Buffer
+  const webhookRepo = new WebhookRepository();
+  const webhookHandler = new WebhookHandler(webhookRepo, deps.workflowQueue ?? null);
+  app.use("/api/w", createIncomingWebhookRouter(webhookHandler));
+
+  // ── Webhook (legacy path-based trigger) — public, rate-limited ─────────────
   const workflowRepo = new WorkflowRepository();
   const webhookController = new WebhookController(
     workflowRepo,
@@ -121,7 +140,17 @@ export function createApp(deps: AppDeps = {}): Express {
   // Register all built-in nodes into the registry (idempotent when deps.nodeRegistry provided)
   if (!deps.nodeRegistry) {
     const aiProvider = env.ANTHROPIC_API_KEY ? new ClaudeProvider(env.ANTHROPIC_API_KEY) : undefined;
-    registerBuiltInNodes(tenantNodeRegistry, aiProvider);
+    // Build credential vault early so DatabaseNode can resolve credentials at execution time
+    const nodeCredEncryption = new CredentialEncryption(env.MASTER_ENCRYPTION_KEY);
+    const nodeCredRepo = new CredentialRepository();
+    const nodeCredService = new CredentialService(nodeCredRepo, nodeCredEncryption);
+    const nodeDbFactory = new DatabaseClientFactory();
+    const branchSyncManager = new BranchSyncManager(redis);
+    registerBuiltInNodes(tenantNodeRegistry, aiProvider, {
+      credentialVault: nodeCredService,
+      dbClientFactory: nodeDbFactory,
+      branchSyncManager,
+    });
   }
 
   const nodeController = new NodeController(nodeRegistry);
@@ -132,6 +161,10 @@ export function createApp(deps: AppDeps = {}): Express {
 
   // Tenant context — must run after authenticate
   app.use(tenantContext);
+
+  // ── Webhook management (authenticated) ─────────────────────────────────────
+  const webhookManagementController = new WebhookManagementController(webhookRepo);
+  app.use("/api/webhooks", createWebhookManagementRouter(webhookManagementController));
 
   // ── Workflows ───────────────────────────────────────────────────────────────
   const executionRepo = new ExecutionLogRepository(pgPool);
@@ -166,6 +199,13 @@ export function createApp(deps: AppDeps = {}): Express {
   const tenantService = new TenantService(tenantRepo);
   const tenantController = new TenantController(tenantService);
   app.use("/api/tenants", createTenantRouter(tenantController));
+
+  // ── Credentials ─────────────────────────────────────────────────────────────
+  const credentialEncryption = new CredentialEncryption(env.MASTER_ENCRYPTION_KEY);
+  const credentialRepository = new CredentialRepository();
+  const credentialService = new CredentialService(credentialRepository, credentialEncryption);
+  const credentialController = new CredentialController(credentialService);
+  app.use("/api/credentials", createCredentialRouter(credentialController));
 
   // ── Marketplace ─────────────────────────────────────────────────────────────
   let marketplaceService = deps.marketplaceService;

@@ -1,111 +1,173 @@
-import { AppError } from "../../shared/errors/index.js";
+import { MergeNodeConfigSchema } from "@automation-hub/shared";
 import type {
   ExecutionContext,
   INode,
   NodeDefinition,
   NodeOutput,
 } from "../contracts/INode.js";
+import type { IBranchSyncManager } from "../../engine/BranchSyncManager.js";
+import { InMemoryBranchSyncManager } from "../../engine/BranchSyncManager.js";
 
-type MergeStrategy = "concat" | "zip" | "first" | "last" | "merge_objects";
+// ─── Merge-pending sentinel ────────────────────────────────────────────────────
 
-function zipArrays(branches: unknown[]): unknown[] {
-  const arrays = branches.filter(Array.isArray);
-  if (arrays.length === 0) return [];
-  const maxLen = Math.max(...arrays.map((a) => a.length));
-  const result: unknown[] = [];
-  for (let i = 0; i < maxLen; i++) {
-    result.push(arrays.map((a) => a[i]));
+/** Metadata key used to signal that a MergeNode is still waiting for branches. */
+export const MERGE_PENDING_KEY = "__merge_pending__" as const;
+
+/** Returns true if the output is a "merge pending" sentinel (branch not yet complete). */
+export function isMergePending(output: NodeOutput): boolean {
+  return !!(output.metadata && MERGE_PENDING_KEY in output.metadata);
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function isNodeOutput(val: unknown): val is NodeOutput {
+  return typeof val === "object" && val !== null && "data" in val;
+}
+
+/** Extract raw data from a value that may be a NodeOutput wrapper. */
+function unwrap(val: unknown): unknown {
+  return isNodeOutput(val) ? val.data : val;
+}
+
+// ─── Merge strategies ─────────────────────────────────────────────────────────
+
+type MergeMode = "waitAll" | "mergeByKey" | "append" | "firstWins";
+
+function mergeByKeyStrategy(
+  branches: unknown[],
+  joinKey: string,
+  joinType: "inner" | "left"
+): unknown {
+  // Normalise each branch to an array of objects
+  const arrays = branches.map((b) =>
+    Array.isArray(b) ? (b as Record<string, unknown>[]) : [b as Record<string, unknown>]
+  );
+
+  const [left = [], ...rest] = arrays;
+  const result: Record<string, unknown>[] = [];
+
+  for (const leftItem of left) {
+    const keyVal = leftItem[joinKey];
+    const merged: Record<string, unknown> = { ...leftItem };
+    let matched = true;
+
+    for (const rightArray of rest) {
+      const match = rightArray.find((r) => r[joinKey] === keyVal);
+      if (match) {
+        Object.assign(merged, match);
+      } else if (joinType === "inner") {
+        matched = false;
+        break;
+      }
+    }
+
+    if (matched) result.push(merged);
   }
+
   return result;
 }
 
-function mergeByStrategy(branches: unknown[], strategy: MergeStrategy): unknown {
-  switch (strategy) {
-    case "concat":
+function applyMergeStrategy(
+  branches: unknown[],
+  mode: MergeMode,
+  joinKey: string,
+  joinType: "inner" | "left"
+): unknown {
+  switch (mode) {
+    case "waitAll":
+      return { branches, branchCount: branches.length };
+
+    case "mergeByKey":
+      return mergeByKeyStrategy(branches, joinKey, joinType);
+
+    case "append":
       return branches.flatMap((b) => (Array.isArray(b) ? b : [b]));
 
-    case "zip":
-      return zipArrays(branches);
-
-    case "first":
+    case "firstWins":
       return branches[0];
-
-    case "last":
-      return branches[branches.length - 1];
-
-    case "merge_objects":
-      return Object.assign(
-        {},
-        ...branches.filter(
-          (b) => typeof b === "object" && b !== null && !Array.isArray(b)
-        )
-      );
-
-    default: {
-      const _never: never = strategy;
-      throw new AppError(
-        `Unknown merge strategy: ${String(_never)}`,
-        400,
-        "MERGE_INVALID_STRATEGY"
-      );
-    }
   }
 }
+
+// ─── MergeNode ────────────────────────────────────────────────────────────────
 
 export class MergeNode implements INode {
   readonly definition: NodeDefinition = {
     type: "merge",
-    name: "Merge",
+    name: "Merge / Join",
     description:
-      "Combine outputs from multiple upstream branches using a merge strategy",
+      "Combine outputs from multiple parallel branches (waitAll, mergeByKey, append, firstWins)",
     configSchema: {
       type: "object",
-      required: ["strategy"],
       properties: {
-        strategy: {
-          type: "string",
-          enum: ["concat", "zip", "first", "last", "merge_objects"],
-          description: "How to combine the branch outputs",
-        },
-        waitFor: {
-          type: "number",
-          minimum: 1,
-          description:
-            "Minimum number of branch inputs required before merging",
-        },
+        mode: { type: "string", enum: ["waitAll", "mergeByKey", "append", "firstWins"] },
+        inputCount: { type: "number", minimum: 2 },
+        joinKey: { type: "string" },
+        joinType: { type: "string", enum: ["inner", "left"] },
+        timeoutMs: { type: "number", minimum: 0 },
       },
     },
   };
 
+  constructor(
+    private readonly sync: IBranchSyncManager = new InMemoryBranchSyncManager()
+  ) {}
+
   async execute(
     input: unknown,
     config: Readonly<Record<string, unknown>>,
-    _context: ExecutionContext
+    context: ExecutionContext
   ): Promise<NodeOutput> {
-    const strategy = config["strategy"] as MergeStrategy | undefined;
-    const waitFor = config["waitFor"] as number | undefined;
+    const parsed = MergeNodeConfigSchema.safeParse(config);
+    const {
+      mode,
+      inputCount,
+      joinKey = "id",
+      joinType,
+    } = parsed.success
+      ? parsed.data
+      : { mode: "waitAll" as const, inputCount: 2, joinKey: "id", joinType: "inner" as const };
 
-    if (!strategy) {
-      throw new AppError(
-        "MergeNode requires a strategy",
-        400,
-        "MERGE_MISSING_STRATEGY"
+    const branchIndex = (config["branchIndex"] as number | undefined) ?? 0;
+    const nodeId = context.nodeId ?? "merge";
+    const { executionId } = context;
+
+    // ── Array input: WorkflowRunner collected all branch outputs at once ────────
+    if (Array.isArray(input)) {
+      const branchData = input.map(unwrap);
+      const actualCount = branchData.length;
+      await Promise.all(
+        branchData.map((item, i) =>
+          this.sync.registerBranch(executionId, nodeId, i, item)
+        )
       );
+      const branches = await this.sync.getAll(executionId, nodeId, actualCount);
+      await this.sync.cleanup(executionId, nodeId);
+      return { data: applyMergeStrategy(branches, mode, joinKey, joinType) };
     }
 
-    // Normalise: each upstream branch passes its NodeOutput.data as one element
-    const branches = Array.isArray(input) ? input : [input];
+    // ── Single-branch call: one branch per execute() invocation ────────────────
+    const singleData = unwrap(input);
 
-    if (waitFor !== undefined && branches.length < waitFor) {
-      throw new AppError(
-        `MergeNode expected at least ${waitFor} branches but received ${branches.length}`,
-        400,
-        "MERGE_INSUFFICIENT_BRANCHES"
-      );
+    if (mode === "firstWins") {
+      const count = await this.sync.getCount(executionId, nodeId);
+      if (count > 0) {
+        // A winner already registered — discard this late arrival
+        return { data: null, metadata: { [MERGE_PENDING_KEY]: true } };
+      }
+      // Register the winner but do NOT clean up: late arrivals need count > 0
+      // to be discarded. Redis TTL will expire the key automatically.
+      await this.sync.registerBranch(executionId, nodeId, branchIndex, singleData);
+      return { data: singleData };
     }
 
-    const merged = mergeByStrategy(branches, strategy);
+    await this.sync.registerBranch(executionId, nodeId, branchIndex, singleData);
 
-    return { data: { merged } };
+    if (!(await this.sync.isComplete(executionId, nodeId, inputCount))) {
+      return { data: null, metadata: { [MERGE_PENDING_KEY]: true } };
+    }
+
+    const branches = await this.sync.getAll(executionId, nodeId, inputCount);
+    await this.sync.cleanup(executionId, nodeId);
+    return { data: applyMergeStrategy(branches, mode, joinKey, joinType) };
   }
 }

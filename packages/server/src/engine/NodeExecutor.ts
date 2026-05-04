@@ -5,6 +5,14 @@ import type { RetryManager } from "./RetryManager.js";
 import type { ExpressionEvaluator } from "./ExpressionEvaluator.js";
 import type { ExpressionContext, WorkflowNode } from "./types.js";
 import { type RetryConfig } from "./RetryManager.js";
+import type { CredentialService } from "../modules/credentials/CredentialService.js";
+
+/** Extracts all $credentials.NAME references from a serialised config string. */
+function extractCredentialNames(config: Record<string, unknown>): string[] {
+  const json = JSON.stringify(config);
+  const matches = json.matchAll(/\$credentials\.([a-zA-Z0-9_-]+)/g);
+  return [...new Set([...matches].map((m) => m[1]!))];
+}
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 1,
@@ -17,7 +25,8 @@ export class NodeExecutor {
     private readonly registry: NodeRegistry,
     private readonly evaluator: ExpressionEvaluator,
     private readonly retryManager: RetryManager,
-    private readonly eventBus: EventBus
+    private readonly eventBus: EventBus,
+    private readonly credentialService?: CredentialService
   ) {}
 
   async execute(
@@ -30,9 +39,23 @@ export class NodeExecutor {
       "resolveForTenant" in this.registry
         ? (this.registry as unknown as { resolveForTenant(t: string, id: string): INode }).resolveForTenant(node.type, executionContext.tenantId)
         : this.registry.resolve(node.type);
+
+    // Resolve $credentials references before evaluating the config
+    let enrichedContext = expressionContext;
+    if (this.credentialService) {
+      const credNames = extractCredentialNames(node.config);
+      if (credNames.length > 0) {
+        const credentials = await this.credentialService.resolveForExecution(
+          executionContext.tenantId,
+          credNames
+        );
+        enrichedContext = { ...expressionContext, credentials };
+      }
+    }
+
     const resolvedConfig = this.evaluator.evaluateConfig(
       node.config,
-      expressionContext
+      enrichedContext
     );
     const retryConfig = node.retry ?? DEFAULT_RETRY_CONFIG;
 
@@ -57,6 +80,7 @@ export class NodeExecutor {
         () =>
           resolvedNode.execute(input, resolvedConfig, {
             ...executionContext,
+            nodeId: node.id,
             signal: executionContext.signal,
           }),
         retryConfig,

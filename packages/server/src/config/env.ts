@@ -31,6 +31,9 @@ export const env = cleanEnv(process.env, {
   // CORS
   CORS_ORIGIN: str({ default: "http://localhost:5173" }),
 
+  // Public base URL (used to build webhook URLs)
+  BASE_URL: str({ default: "http://localhost:3000" }),
+
   // Stripe (optional — billing features)
   STRIPE_SECRET_KEY: str({ default: "" }),
   STRIPE_WEBHOOK_SECRET: str({ default: "" }),
@@ -40,4 +43,7 @@ export const env = cleanEnv(process.env, {
 
   // Marketplace
   MARKETPLACE_UPLOAD_DIR: str({ default: "uploads/marketplace" }),
+
+  // Credential vault — 32-byte master key as 64 hex chars
+  MASTER_ENCRYPTION_KEY: str({ default: "0000000000000000000000000000000000000000000000000000000000000000" }),
 });

@@ -1,5 +1,6 @@
 export { HttpRequestNode } from "./HttpRequestNode.js";
 export { WebhookNode } from "./WebhookNode.js";
+export { WebhookTriggerNode } from "./WebhookTriggerNode.js";
 export { ConditionNode } from "./ConditionNode.js";
 export { JavaScriptNode } from "./JavaScriptNode.js";
 export { DelayNode } from "./DelayNode.js";
@@ -9,8 +10,15 @@ export { NoOpNode } from "./NoOpNode.js";
 export { AiTransformNode } from "./AiTransformNode.js";
 export { EmailNode } from "./EmailNode.js";
 export { DbQueryNode } from "./DbQueryNode.js";
+export { DatabaseNode } from "./DatabaseNode.js";
+export type { ICredentialVault } from "./DatabaseNode.js";
+export { ConditionalNode } from "./ConditionalNode.js";
 export { LoopNode } from "./LoopNode.js";
 export { MergeNode } from "./MergeNode.js";
+export { SubWorkflowNode } from "./SubWorkflowNode.js";
+export type { ISubWorkflowRunner } from "./SubWorkflowNode.js";
+export { WaitNode } from "./WaitNode.js";
+export { DataTransformNode } from "./DataTransformNode.js";
 // ── Integration nodes (built-in marketplace packages) ────────────────────────
 export { SlackNode } from "./SlackNode.js";
 export { TelegramNode } from "./TelegramNode.js";

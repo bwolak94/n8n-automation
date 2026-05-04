@@ -42,6 +42,8 @@ const config = {
     "!src/modules/auth/**",
     "!src/modules/members/**",
     "!src/modules/queue/BullMQDLQRepository.ts",
+    // Optional-driver implementations (mysql2, better-sqlite3) — tested via injected mocks in DatabaseNode.test.ts
+    "!src/nodes/implementations/db/DatabaseClientFactory.ts",
   ],
   coverageThreshold: {
     global: {

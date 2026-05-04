@@ -2,6 +2,7 @@ import type { NodeRegistry } from "./NodeRegistry.js";
 import {
   HttpRequestNode,
   WebhookNode,
+  WebhookTriggerNode,
   ConditionNode,
   JavaScriptNode,
   DelayNode,
@@ -11,23 +12,43 @@ import {
   AiTransformNode,
   EmailNode,
   DbQueryNode,
+  DatabaseNode,
+  ConditionalNode,
   LoopNode,
   MergeNode,
+  SubWorkflowNode,
+  WaitNode,
+  DataTransformNode,
   SlackNode,
   TelegramNode,
   DiscordNode,
   OpenAINode,
   GitHubNode,
 } from "./implementations/index.js";
+import type { ICredentialVault } from "./implementations/index.js";
+import type { ISubWorkflowRunner } from "./implementations/index.js";
+import type { IDbClientFactory } from "./implementations/db/DatabaseClientFactory.js";
 import type { IAiProvider } from "./contracts/IAiProvider.js";
+import type { IWorkflowRepository } from "../engine/types.js";
+import type { IBranchSyncManager } from "../engine/BranchSyncManager.js";
+
+export interface NodeRegistrationDeps {
+  credentialVault?: ICredentialVault;
+  dbClientFactory?: IDbClientFactory;
+  subWorkflowRunner?: ISubWorkflowRunner;
+  workflowRepo?: IWorkflowRepository;
+  branchSyncManager?: IBranchSyncManager;
+}
 
 export function registerBuiltInNodes(
   registry: NodeRegistry,
-  aiProvider?: IAiProvider
+  aiProvider?: IAiProvider,
+  nodeDeps?: NodeRegistrationDeps
 ): void {
   // ── Core nodes ──────────────────────────────────────────────────────────────
   registry.register(new HttpRequestNode());
   registry.register(new WebhookNode());
+  registry.register(new WebhookTriggerNode());
   registry.register(new ConditionNode());
   registry.register(new JavaScriptNode());
   registry.register(new DelayNode());
@@ -36,8 +57,17 @@ export function registerBuiltInNodes(
   registry.register(new NoOpNode());
   registry.register(new EmailNode());
   registry.register(new DbQueryNode());
+  registry.register(new DatabaseNode(nodeDeps?.credentialVault, nodeDeps?.dbClientFactory));
+  registry.register(new ConditionalNode());
   registry.register(new LoopNode());
-  registry.register(new MergeNode());
+  registry.register(new MergeNode(nodeDeps?.branchSyncManager));
+  registry.register(new WaitNode());
+  registry.register(new DataTransformNode());
+
+  // Sub-workflow node requires runner + workflowRepo — skip gracefully if not provided
+  if (nodeDeps?.subWorkflowRunner && nodeDeps?.workflowRepo) {
+    registry.register(new SubWorkflowNode(nodeDeps.subWorkflowRunner, nodeDeps.workflowRepo));
+  }
 
   // AI node requires a provider — skip gracefully if none configured
   if (aiProvider) {

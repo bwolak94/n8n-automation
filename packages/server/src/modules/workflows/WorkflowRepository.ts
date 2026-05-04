@@ -13,6 +13,8 @@ export interface ApiWorkflowNode {
   position: { x: number; y: number };
   config: Record<string, unknown>;
   retryPolicy?: unknown;
+  loopNodeId?: string;
+  loopGroup?: string;
 }
 
 export interface ApiWorkflowEdge {
@@ -92,11 +94,13 @@ function toWorkflowDefinition(doc: WorkflowLeanDoc): WorkflowDefinition {
     id: n.id,
     type: n.type,
     config: n.config,
+    ...(n.loopNodeId !== undefined ? { loopNodeId: n.loopNodeId } : {}),
   }));
 
   const edges: WorkflowEdge[] = (doc.edges ?? []).map((e) => ({
     from: e.source,
     to: e.target,
+    ...(e.sourceHandle !== undefined ? { sourceHandle: e.sourceHandle } : {}),
   }));
 
   return {

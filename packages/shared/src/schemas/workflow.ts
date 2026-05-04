@@ -21,6 +21,10 @@ export const WorkflowNodeSchema = z.object({
   }),
   config: NodeConfigSchema,
   retryPolicy: RetryPolicySchema.optional(),
+  /** ID of the LoopNode this node belongs to (marks it as a loop-scoped inner node). */
+  loopNodeId: z.string().optional(),
+  /** Logical group label for canvas grouping (e.g. the loop container label). */
+  loopGroup: z.string().optional(),
 });
 
 export const WorkflowEdgeSchema = z.object({
