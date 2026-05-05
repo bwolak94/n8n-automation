@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Stripe payment_intent.payment_failed",
       "position": { "x": 100, "y": 200 },
@@ -36,7 +36,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Retry Charge via Stripe",
       "position": { "x": 850, "y": 200 },

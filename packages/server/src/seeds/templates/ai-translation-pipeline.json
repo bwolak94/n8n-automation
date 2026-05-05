@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Translation Request",
       "position": { "x": 100, "y": 200 },
@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Translate to Spanish",
       "position": { "x": 350, "y": 100 },
@@ -26,7 +26,7 @@
     },
     {
       "id": "node-3",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Translate to French",
       "position": { "x": 350, "y": 250 },
@@ -37,7 +37,7 @@
     },
     {
       "id": "node-4",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Translate to German",
       "position": { "x": 350, "y": 400 },

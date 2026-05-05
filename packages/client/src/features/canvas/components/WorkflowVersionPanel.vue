@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { apiClient } from "../../../shared/api/client.js";
 
 interface VersionSummary {
   id: string;
@@ -32,11 +33,9 @@ async function fetchVersions(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    const res = await fetch(`/api/workflows/${props.workflowId}/versions`, {
-      headers: { "X-Tenant-Id": getTenantId() },
-    });
-    if (!res.ok) throw new Error(`Failed to load versions: ${res.status}`);
-    versions.value = (await res.json()) as VersionSummary[];
+    versions.value = await apiClient
+      .get(`workflows/${props.workflowId}/versions`)
+      .json<VersionSummary[]>();
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Unknown error";
   } finally {
@@ -47,15 +46,9 @@ async function fetchVersions(): Promise<void> {
 async function restore(version: number): Promise<void> {
   restoringVersion.value = version;
   try {
-    const res = await fetch(
-      `/api/workflows/${props.workflowId}/versions/${version}/restore`,
-      {
-        method: "POST",
-        headers: { "X-Tenant-Id": getTenantId() },
-      }
-    );
-    if (!res.ok) throw new Error(`Restore failed: ${res.status}`);
-    const newVersion = (await res.json()) as VersionSummary;
+    const newVersion = await apiClient
+      .post(`workflows/${props.workflowId}/versions/${version}/restore`)
+      .json<VersionSummary>();
     await fetchVersions();
     emit("restored", newVersion);
   } catch (err) {
@@ -93,12 +86,6 @@ function formatDate(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getTenantId(): string {
-  // Reads tenant id from meta tag injected by the app shell
-  return (document.querySelector('meta[name="tenant-id"]') as HTMLMetaElement | null)
-    ?.content ?? "";
 }
 
 onMounted(fetchVersions);

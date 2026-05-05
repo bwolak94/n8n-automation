@@ -40,7 +40,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Push to Analytics API",
       "position": { "x": 850, "y": 200 },

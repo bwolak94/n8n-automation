@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Query CloudWatch Logs",
       "position": { "x": 350, "y": 200 },
@@ -46,7 +46,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Create Incident",
       "position": { "x": 850, "y": 200 },

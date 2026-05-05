@@ -33,7 +33,7 @@ function setDotPath(obj: unknown, path: string, value: unknown): unknown {
 
 export class DataTransformNode implements INode {
   readonly definition: NodeDefinition = {
-    type: "dataTransform",
+    type: "data_transform",
     name: "Data Transform",
     description:
       "Reshape, filter, map, and aggregate data using composable operations — no code required",

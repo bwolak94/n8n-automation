@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch Daily Summary",
       "position": { "x": 350, "y": 200 },
@@ -27,7 +27,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Post to Teams",
       "position": { "x": 600, "y": 200 },

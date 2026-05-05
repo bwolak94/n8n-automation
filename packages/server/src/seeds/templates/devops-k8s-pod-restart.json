@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "List Pod Statuses",
       "position": { "x": 350, "y": 200 },
@@ -52,7 +52,7 @@
     },
     {
       "id": "node-5",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Slack CrashLoop Alert",
       "position": { "x": 1100, "y": 200 },

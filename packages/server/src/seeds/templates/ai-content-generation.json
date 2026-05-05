@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Content Brief Received",
       "position": { "x": 100, "y": 200 },
@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Generate Blog Outline",
       "position": { "x": 350, "y": 200 },
@@ -26,7 +26,7 @@
     },
     {
       "id": "node-3",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Write Full Draft",
       "position": { "x": 600, "y": 200 },
@@ -37,7 +37,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Save to CMS as Draft",
       "position": { "x": 850, "y": 200 },

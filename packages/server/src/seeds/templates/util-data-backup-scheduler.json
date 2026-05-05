@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Trigger Backup API",
       "position": { "x": 350, "y": 200 },
@@ -36,7 +36,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Verify Backup Status",
       "position": { "x": 850, "y": 200 },

@@ -31,7 +31,7 @@ export interface ISubWorkflowRunner {
 
 export class SubWorkflowNode implements INode {
   readonly definition: NodeDefinition = {
-    type: "subWorkflow",
+    type: "sub_workflow",
     name: "Sub-workflow",
     description:
       "Invoke another workflow as a reusable step and receive its output",

@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "New Support Ticket",
       "position": { "x": 100, "y": 200 },
@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Find CRM Contact",
       "position": { "x": 350, "y": 200 },
@@ -41,7 +41,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Log Activity on CRM",
       "position": { "x": 850, "y": 200 },

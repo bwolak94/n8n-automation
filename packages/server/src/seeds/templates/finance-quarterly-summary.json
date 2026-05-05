@@ -29,7 +29,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch from Accounting API",
       "position": { "x": 350, "y": 380 },

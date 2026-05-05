@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Deployment Completed",
       "position": { "x": 100, "y": 200 },
@@ -23,7 +23,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Check Post-Deploy Error Rate",
       "position": { "x": 600, "y": 200 },
@@ -49,7 +49,7 @@
     },
     {
       "id": "node-5",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Trigger Rollback",
       "position": { "x": 1100, "y": 200 },

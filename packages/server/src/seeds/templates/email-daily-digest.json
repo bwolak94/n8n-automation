@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch News Headlines",
       "position": { "x": 350, "y": 100 },
@@ -26,7 +26,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch Weather",
       "position": { "x": 350, "y": 300 },

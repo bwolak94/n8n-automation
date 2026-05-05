@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch Logs from Loki",
       "position": { "x": 350, "y": 200 },

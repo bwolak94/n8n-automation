@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Refund Request Webhook",
       "position": { "x": 100, "y": 200 },
@@ -29,7 +29,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Process Stripe Refund",
       "position": { "x": 650, "y": 100 },

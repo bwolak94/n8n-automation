@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "Config Update Trigger",
       "position": { "x": 100, "y": 200 },
@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch from Parameter Store",
       "position": { "x": 350, "y": 200 },
@@ -39,7 +39,7 @@
     },
     {
       "id": "node-4",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Push to Services",
       "position": { "x": 850, "y": 200 },

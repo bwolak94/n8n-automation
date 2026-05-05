@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "node-1",
-      "type": "webhookTrigger",
+      "type": "webhook_trigger",
       "category": "triggers",
       "label": "New Lead Created",
       "position": { "x": 100, "y": 200 },
@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Score Lead with AI",
       "position": { "x": 350, "y": 200 },
@@ -26,7 +26,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Update CRM with Score",
       "position": { "x": 600, "y": 200 },
@@ -57,7 +57,7 @@
     },
     {
       "id": "node-5",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Alert Sales in Slack",
       "position": { "x": 1100, "y": 200 },

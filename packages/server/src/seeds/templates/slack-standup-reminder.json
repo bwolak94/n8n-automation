@@ -18,7 +18,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Post to Slack",
       "position": { "x": 350, "y": 200 },

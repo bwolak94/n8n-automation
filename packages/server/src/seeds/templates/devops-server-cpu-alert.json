@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Query Prometheus",
       "position": { "x": 350, "y": 200 },
@@ -52,7 +52,7 @@
     },
     {
       "id": "node-5",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Page On-call Engineer",
       "position": { "x": 1100, "y": 200 },

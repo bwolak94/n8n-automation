@@ -43,7 +43,7 @@
     },
     {
       "id": "node-4",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Generate Recommendations",
       "position": { "x": 850, "y": 200 },

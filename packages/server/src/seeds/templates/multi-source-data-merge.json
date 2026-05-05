@@ -15,7 +15,7 @@
     },
     {
       "id": "node-2",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch CRM Contacts",
       "position": { "x": 350, "y": 100 },
@@ -27,7 +27,7 @@
     },
     {
       "id": "node-3",
-      "type": "httpRequest",
+      "type": "http_request",
       "category": "actions",
       "label": "Fetch Billing Records",
       "position": { "x": 350, "y": 300 },

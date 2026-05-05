@@ -35,7 +35,7 @@ function buildAuthHeader(auth: HttpAuth): string {
 
 export class HttpRequestNode implements INode {
   readonly definition: NodeDefinition = {
-    type: "http",
+    type: "http_request",
     name: "HTTP Request",
     description: "Make an HTTP request to any URL",
     configSchema: {

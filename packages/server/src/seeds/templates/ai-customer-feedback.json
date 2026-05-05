@@ -29,7 +29,7 @@
     },
     {
       "id": "node-3",
-      "type": "aiTransform",
+      "type": "ai_transform",
       "category": "ai",
       "label": "Analyze & Synthesize",
       "position": { "x": 600, "y": 200 },

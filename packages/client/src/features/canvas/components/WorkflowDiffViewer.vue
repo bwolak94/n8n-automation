@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
+import { apiClient } from "../../../shared/api/client.js";
 
 interface JsonPatchOp {
   op: "add" | "remove" | "replace";
@@ -30,12 +31,9 @@ async function fetchDiff(): Promise<void> {
   error.value = null;
   try {
     const params = new URLSearchParams({ v1: String(props.v1), v2: String(props.v2) });
-    const res = await fetch(
-      `/api/workflows/${props.workflowId}/versions/diff?${params}`,
-      { headers: { "X-Tenant-Id": getTenantId() } }
-    );
-    if (!res.ok) throw new Error(`Diff failed: ${res.status}`);
-    ops.value = (await res.json()) as JsonPatchOp[];
+    ops.value = await apiClient
+      .get(`workflows/${props.workflowId}/versions/diff?${params}`)
+      .json<JsonPatchOp[]>();
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Unknown error";
   } finally {
@@ -46,11 +44,6 @@ async function fetchDiff(): Promise<void> {
 function formatValue(value: unknown): string {
   if (value === undefined) return "";
   return JSON.stringify(value, null, 2);
-}
-
-function getTenantId(): string {
-  return (document.querySelector('meta[name="tenant-id"]') as HTMLMetaElement | null)
-    ?.content ?? "";
 }
 
 onMounted(fetchDiff);
