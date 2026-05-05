@@ -1,0 +1,72 @@
+{
+  "name": "DNS Health Monitor",
+  "category": "Utilities",
+  "description": "Check DNS resolution for your critical domains every 15 minutes. Alert if DNS propagation fails or records change unexpectedly, preventing silent DNS hijacking.",
+  "author": "platform",
+  "tags": ["dns", "monitoring", "security", "utilities", "alert"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 15 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/15 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Resolve DNS via Google API",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://dns.google/resolve?name=example.com&type=A"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Compare to Expected IPs",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const answers = $input.Answer || [];\nconst resolvedIPs = answers.map(a => a.data);\nconst expectedIPs = ['1.2.3.4', '1.2.3.5'];\nconst unexpected = resolvedIPs.filter(ip => !expectedIPs.includes(ip));\nreturn { resolvedIPs, unexpected, changed: unexpected.length > 0 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "DNS Changed?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.changed}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "URGENT: DNS Change Alert",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "security@example.com",
+        "subject": "URGENT: Unexpected DNS change detected for example.com",
+        "html": "<h2>DNS Change Alert</h2><p>Unexpected IPs detected: <strong>{{nodes.node-3.data.unexpected}}</strong></p><p>Expected: {{nodes.node-3.data.resolvedIPs}}</p><p>Please investigate immediately for possible DNS hijacking.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

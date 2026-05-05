@@ -1,0 +1,70 @@
+{
+  "name": "Auto Rollback on Error Spike",
+  "category": "DevOps",
+  "description": "Monitor error rates after each deployment. If errors spike above threshold within 10 minutes of deploy, automatically trigger a rollback via the deployment API.",
+  "author": "platform",
+  "tags": ["rollback", "deployment", "auto-remediation", "devops", "safety"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Deployment Completed",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait 10 Minutes",
+      "position": { "x": 350, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 10, "unit": "minutes" } }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Check Post-Deploy Error Rate",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.datadog.com/api/v1/query?query=avg:trace.errors.rate{service:production}&from=-600&to=0",
+        "headers": { "DD-API-KEY": "YOUR_DD_API_KEY", "DD-APPLICATION-KEY": "YOUR_DD_APP_KEY" }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Error Rate > Threshold?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.series[0].pointlist[0][1]}}", "operator": "greaterThan", "value": "0.05" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Trigger Rollback",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.deployment.example.com/rollback",
+        "headers": { "Authorization": "Bearer YOUR_DEPLOY_TOKEN", "Content-Type": "application/json" },
+        "body": { "deploymentId": "{{nodes.node-1.data.deploymentId}}", "reason": "auto-rollback: error spike detected" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

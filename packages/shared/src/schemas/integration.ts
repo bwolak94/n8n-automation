@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { NodeCategory, WorkflowStatus } from "../constants/index.js";
+import { NodeCategory } from "../constants/index.js";
 
 // ─── Template workflow snapshot types ────────────────────────────────────────
 

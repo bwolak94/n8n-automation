@@ -1,10 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
-import { CredentialCreateSchema, CredentialUpdateSchema } from "@automation-hub/shared";
+import { AuditEventType, CredentialCreateSchema, CredentialUpdateSchema } from "@automation-hub/shared";
 import { ValidationError } from "../../shared/errors/index.js";
 import type { CredentialService } from "./CredentialService.js";
+import type { AuditLogService } from "../audit/AuditLogService.js";
 
 export class CredentialController {
-  constructor(private readonly credentialService: CredentialService) {}
+  constructor(
+    private readonly credentialService: CredentialService,
+    private readonly auditService?: AuditLogService
+  ) {}
 
   // POST /api/credentials
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -18,6 +22,17 @@ export class CredentialController {
         req.tenantId!,
         parsed.data
       );
+      this.auditService?.log({
+        tenantId:   req.tenantId!,
+        actorId:    req.user?.userId ?? "unknown",
+        actorEmail: req.user?.email,
+        ipAddress:  req.ip,
+        userAgent:  req.get("user-agent"),
+        eventType:  AuditEventType.CREDENTIAL_CREATED,
+        entityType: "credential",
+        entityId:   credential.id,
+        metadata:   { name: credential.name, type: credential.type },
+      });
       res.status(201).json(credential);
     } catch (err) {
       next(err);
@@ -70,6 +85,16 @@ export class CredentialController {
   remove = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.credentialService.deleteCredential(req.tenantId!, req.params["id"]!);
+      this.auditService?.log({
+        tenantId:   req.tenantId!,
+        actorId:    req.user?.userId ?? "unknown",
+        actorEmail: req.user?.email,
+        ipAddress:  req.ip,
+        userAgent:  req.get("user-agent"),
+        eventType:  AuditEventType.CREDENTIAL_DELETED,
+        entityType: "credential",
+        entityId:   req.params["id"]!,
+      });
       res.status(204).end();
     } catch (err) {
       next(err);

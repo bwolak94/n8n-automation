@@ -1,0 +1,75 @@
+{
+  "name": "AI Sentiment Analysis Pipeline",
+  "category": "AI",
+  "description": "Analyze customer feedback, reviews, or support tickets for sentiment using Claude AI. Route negative feedback to the support team and positive feedback to marketing.",
+  "author": "platform",
+  "tags": ["ai", "sentiment", "nlp", "feedback", "routing"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Feedback Received",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Analyze Sentiment",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Analyze the sentiment of the following customer feedback. Respond with a JSON object containing: sentiment (positive/negative/neutral), score (-1.0 to 1.0), summary (one sentence), and key_themes (array of strings).\n\nFeedback: {{nodes.node-1.data.text}}",
+        "outputField": "analysis"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Route by Sentiment",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "switch",
+        "rules": [
+          { "field": "{{nodes.node-2.data.analysis.sentiment}}", "operator": "equals", "value": "negative", "branch": "negative" },
+          { "field": "{{nodes.node-2.data.analysis.sentiment}}", "operator": "equals", "value": "positive", "branch": "positive" }
+        ],
+        "defaultBranch": "neutral"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create Support Ticket",
+      "position": { "x": 900, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.zendesk.example.com/tickets",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN" },
+        "body": { "subject": "Negative feedback", "description": "{{nodes.node-1.data.text}}", "priority": "high" }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Log to Testimonials DB",
+      "position": { "x": 900, "y": 300 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO testimonials (text, score, source, created_at) VALUES ('{{nodes.node-1.data.text}}', {{nodes.node-2.data.analysis.score}}, '{{nodes.node-1.data.source}}', NOW())"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "negative" },
+    { "id": "e-3-5", "source": "node-3", "target": "node-5", "sourceHandle": "positive" }
+  ]
+}

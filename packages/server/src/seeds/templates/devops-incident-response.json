@@ -1,0 +1,65 @@
+{
+  "name": "Incident Response Automation",
+  "category": "DevOps",
+  "description": "When a P1 incident is declared, automatically create a war-room Slack channel, page on-call engineers, create an incident tracker entry, and notify stakeholders.",
+  "author": "platform",
+  "tags": ["incident", "sre", "on-call", "slack", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "P1 Incident Declared",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create Slack War Room",
+      "position": { "x": 350, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://slack.com/api/conversations.create",
+        "headers": { "Authorization": "Bearer YOUR_SLACK_TOKEN", "Content-Type": "application/json" },
+        "body": { "name": "inc-{{nodes.node-1.data.incidentId}}-{{nodes.node-1.data.slug}}" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Page On-call via PagerDuty",
+      "position": { "x": 350, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "routing_key": "YOUR_PAGERDUTY_KEY",
+          "event_action": "trigger",
+          "payload": { "summary": "P1: {{nodes.node-1.data.title}}", "severity": "critical", "source": "incident-system" }
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Notify Stakeholders",
+      "position": { "x": 700, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "leadership@example.com",
+        "subject": "P1 INCIDENT: {{nodes.node-1.data.title}}",
+        "html": "<h2>P1 Incident Declared</h2><p><strong>Title:</strong> {{nodes.node-1.data.title}}</p><p><strong>Impact:</strong> {{nodes.node-1.data.impact}}</p><p>The on-call team has been paged and a war room has been created.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" }
+  ]
+}

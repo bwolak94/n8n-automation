@@ -1,0 +1,73 @@
+{
+  "name": "URL Health Checker",
+  "category": "Utilities",
+  "description": "Check a list of URLs every 5 minutes and report any that return non-2xx responses. Stores results in the database for historical uptime tracking.",
+  "author": "platform",
+  "tags": ["health-check", "uptime", "http", "monitoring", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 5 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/5 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "function",
+      "category": "logic",
+      "label": "Define URL List",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "code": "return { urls: ['https://api.example.com/health', 'https://www.example.com', 'https://app.example.com/ping', 'https://dashboard.example.com'] };",
+        "timeoutMs": 1000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Check Each URL",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "urls",
+        "batchSize": 1,
+        "collectResults": true,
+        "continueOnError": true,
+        "maxIterations": 20
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Ping URL",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "method": "GET",
+        "url": "{{$item.value}}"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Store Check Results",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO url_health_checks (checked_at, results) VALUES (NOW(), '{{nodes.node-3.data}}'::jsonb)"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

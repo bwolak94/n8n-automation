@@ -1,0 +1,79 @@
+{
+  "name": "OAuth Token Refresh Scheduler",
+  "category": "Utilities",
+  "description": "Proactively refresh OAuth access tokens for third-party integrations before they expire. Stores refreshed tokens in the credentials vault automatically.",
+  "author": "platform",
+  "tags": ["oauth", "token", "refresh", "credentials", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 50 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/50 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Expiring Tokens",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, provider, refresh_token FROM oauth_tokens WHERE expires_at < NOW() + INTERVAL '10 minutes' AND refresh_token IS NOT NULL",
+        "maxRows": 50
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Refresh Each Token",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 50
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Refresh OAuth Token",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "method": "POST",
+        "url": "https://oauth.{{$item.value.provider}}.com/token",
+        "headers": { "Content-Type": "application/x-www-form-urlencoded" },
+        "body": "grant_type=refresh_token&refresh_token={{$item.value.refresh_token}}&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Store New Token",
+      "position": { "x": 1100, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "UPDATE oauth_tokens SET access_token = '{{nodes.node-4.data.access_token}}', expires_at = NOW() + INTERVAL '1 hour', updated_at = NOW() WHERE id = '{{$item.value.id}}'"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

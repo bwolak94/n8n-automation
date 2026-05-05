@@ -1,0 +1,55 @@
+{
+  "name": "GitHub Push Notification",
+  "category": "DevOps",
+  "description": "Send an email when code is pushed to the main branch. Filters pushes by branch name using a conditional node.",
+  "author": "platform",
+  "tags": ["github", "email", "devops", "notifications"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "GitHub Push Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "description": "Receives GitHub push events"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Is main branch?",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          {
+            "field": "{{nodes.node-1.data.ref}}",
+            "operator": "equals",
+            "value": "refs/heads/main",
+            "combinator": "and"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Push Notification",
+      "position": { "x": 600, "y": 150 },
+      "config": {
+        "transport": "smtp",
+        "to": "team@example.com",
+        "subject": "New push to main: {{nodes.node-1.data.repository.name}}",
+        "html": "<p>New push by <strong>{{nodes.node-1.data.pusher.name}}</strong> to main branch.</p><p>Commit: {{nodes.node-1.data.head_commit.message}}</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "true" }
+  ]
+}

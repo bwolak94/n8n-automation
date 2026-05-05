@@ -3,8 +3,9 @@ import { ref } from "vue";
 import AppLayout from "../shared/components/AppLayout.vue";
 import OrgSettingsPanel from "../features/settings/components/OrgSettingsPanel.vue";
 import MembersPanel from "../features/settings/components/MembersPanel.vue";
+import AuditLogPage from "../features/settings/components/AuditLogPage.vue";
 
-type SettingsTab = "org" | "members";
+type SettingsTab = "org" | "members" | "audit";
 const activeTab = ref<SettingsTab>("org");
 </script>
 
@@ -20,7 +21,7 @@ const activeTab = ref<SettingsTab>("org");
         <!-- Tabs -->
         <div class="mb-6 flex gap-1 border-b border-gray-200">
           <button
-            v-for="tab in ([['org', 'Organisation'], ['members', 'Members']] as const)"
+            v-for="tab in ([['org', 'Organisation'], ['members', 'Members'], ['audit', 'Audit Logs']] as const)"
             :key="tab[0]"
             type="button"
             class="px-4 py-2 text-sm font-medium transition-colors"
@@ -36,6 +37,7 @@ const activeTab = ref<SettingsTab>("org");
 
         <OrgSettingsPanel v-if="activeTab === 'org'" />
         <MembersPanel v-else-if="activeTab === 'members'" />
+        <AuditLogPage v-else-if="activeTab === 'audit'" />
       </div>
     </main>
   </AppLayout>

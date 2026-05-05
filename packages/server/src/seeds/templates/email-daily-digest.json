@@ -1,0 +1,70 @@
+{
+  "name": "Email Daily Digest",
+  "category": "Notifications",
+  "description": "Aggregate data from multiple APIs every morning and send a single digest email to subscribers. Reduces notification noise with one consolidated update.",
+  "author": "platform",
+  "tags": ["email", "digest", "schedule", "aggregation", "morning"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Morning 7am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 7 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch News Headlines",
+      "position": { "x": 350, "y": 100 },
+      "config": {
+        "method": "GET",
+        "url": "https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_KEY"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Weather",
+      "position": { "x": 350, "y": 300 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_KEY"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "function",
+      "category": "logic",
+      "label": "Build Digest HTML",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const headlines = $input[0]?.articles?.slice(0,5).map(a => `<li>${a.title}</li>`).join('') || '';\nconst temp = $input[1]?.main?.temp || 'N/A';\nreturn { html: `<h2>Morning Digest</h2><h3>Weather</h3><p>Temperature: ${temp}K</p><h3>Top Headlines</h3><ul>${headlines}</ul>` };",
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Digest",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "subscribers@example.com",
+        "subject": "Your Morning Digest",
+        "html": "{{nodes.node-4.data.html}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

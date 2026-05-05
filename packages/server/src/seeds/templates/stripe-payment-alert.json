@@ -1,0 +1,69 @@
+{
+  "name": "Stripe Payment Alert",
+  "category": "Finance",
+  "description": "Receive an email alert when a Stripe payment succeeds or fails. Handles both charge.succeeded and charge.failed webhook events.",
+  "author": "platform",
+  "tags": ["stripe", "payments", "finance", "email", "alerts"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Stripe Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "description": "Receives Stripe payment events"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Payment succeeded?",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          {
+            "field": "{{nodes.node-1.data.type}}",
+            "operator": "equals",
+            "value": "charge.succeeded",
+            "combinator": "and"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Success Email",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "transport": "smtp",
+        "to": "billing@example.com",
+        "subject": "Payment received: ${{nodes.node-1.data.data.object.amount}} from {{nodes.node-1.data.data.object.billing_details.name}}",
+        "html": "<p>A payment of <strong>${{nodes.node-1.data.data.object.amount}}</strong> was successfully processed.</p>"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Failure Email",
+      "position": { "x": 600, "y": 300 },
+      "config": {
+        "transport": "smtp",
+        "to": "billing@example.com",
+        "subject": "Payment FAILED for {{nodes.node-1.data.data.object.billing_details.name}}",
+        "html": "<p>A payment attempt failed. Reason: {{nodes.node-1.data.data.object.failure_message}}</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "true" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4", "sourceHandle": "false" }
+  ]
+}

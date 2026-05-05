@@ -1,0 +1,69 @@
+{
+  "name": "Data Backup Scheduler",
+  "category": "Utilities",
+  "description": "Trigger database and file backups on a nightly schedule, upload to S3, and send a completion report with backup sizes and durations.",
+  "author": "platform",
+  "tags": ["backup", "s3", "schedule", "database", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Nightly at 1am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 1 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Trigger Backup API",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://backup-service.internal/backup",
+        "headers": { "Authorization": "Bearer YOUR_BACKUP_TOKEN", "Content-Type": "application/json" },
+        "body": { "target": "production", "types": ["postgres", "mongodb", "files"] }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait for Backup to Complete",
+      "position": { "x": 600, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 30, "unit": "minutes" } }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Verify Backup Status",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://backup-service.internal/backup/{{nodes.node-2.data.jobId}}/status",
+        "headers": { "Authorization": "Bearer YOUR_BACKUP_TOKEN" }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Email Backup Report",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "ops@example.com",
+        "subject": "Nightly Backup Complete — {{nodes.node-4.data.status}}",
+        "html": "<h2>Backup Report</h2><p>Status: <strong>{{nodes.node-4.data.status}}</strong></p><p>Total size: {{nodes.node-4.data.totalSizeMb}} MB</p><p>Duration: {{nodes.node-4.data.durationSeconds}}s</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

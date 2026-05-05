@@ -1,8 +1,11 @@
 # =============================================================================
 # Stage 1 — deps: install all dependencies (layer-cached until lock changes)
 # =============================================================================
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
+
+# Build tools required by native addons (isolated-vm uses node-gyp / V8)
+RUN apk add --no-cache python3 make g++
 
 RUN npm install -g pnpm@9.0.0 --no-package-lock
 
@@ -28,8 +31,11 @@ RUN pnpm --filter @automation-hub/shared build && \
 # =============================================================================
 # Stage 3 — production: lean runtime image
 # =============================================================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 WORKDIR /app
+
+# Build tools required for native addon install (isolated-vm)
+RUN apk add --no-cache python3 make g++
 
 # Non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

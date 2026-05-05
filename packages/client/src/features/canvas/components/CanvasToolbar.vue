@@ -109,6 +109,11 @@ const emit = defineEmits<Emits>();
       Fit
     </button>
 
+    <!-- Extra actions slot (debug, version history, etc.) -->
+    <div class="flex items-center gap-2">
+      <slot name="actions" />
+    </div>
+
     <!-- Dirty indicator -->
     <div class="ml-auto flex items-center gap-1 text-xs text-gray-400">
       <span

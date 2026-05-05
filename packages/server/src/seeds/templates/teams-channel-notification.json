@@ -1,0 +1,57 @@
+{
+  "name": "Microsoft Teams Channel Notification",
+  "category": "Notifications",
+  "description": "Send adaptive card notifications to a Microsoft Teams channel on a schedule or via webhook. Great for daily briefings or system alerts.",
+  "author": "platform",
+  "tags": ["microsoft-teams", "notification", "adaptive-card", "schedule"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 9am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 9 * * 1-5", "timezone": "Europe/London" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Daily Summary",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/daily-summary",
+        "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post to Teams",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://outlook.office.com/webhook/YOUR_TEAMS_WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "@type": "MessageCard",
+          "@context": "https://schema.org/extensions",
+          "summary": "Daily Briefing",
+          "themeColor": "0078D4",
+          "sections": [
+            {
+              "activityTitle": "Daily Summary",
+              "activityText": "{{nodes.node-2.data.summary}}"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

@@ -1,3 +1,4 @@
+export { ScheduleTriggerNode } from "./ScheduleTriggerNode.js";
 export { HttpRequestNode } from "./HttpRequestNode.js";
 export { WebhookNode } from "./WebhookNode.js";
 export { WebhookTriggerNode } from "./WebhookTriggerNode.js";
@@ -19,6 +20,7 @@ export { SubWorkflowNode } from "./SubWorkflowNode.js";
 export type { ISubWorkflowRunner } from "./SubWorkflowNode.js";
 export { WaitNode } from "./WaitNode.js";
 export { DataTransformNode } from "./DataTransformNode.js";
+export { FunctionNode } from "./FunctionNode.js";
 // ── Integration nodes (built-in marketplace packages) ────────────────────────
 export { SlackNode } from "./SlackNode.js";
 export { TelegramNode } from "./TelegramNode.js";

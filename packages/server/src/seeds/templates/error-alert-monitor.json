@@ -1,0 +1,55 @@
+{
+  "name": "Error Alert Monitor",
+  "category": "DevOps",
+  "description": "Receive error alerts from your application via webhook and escalate to the on-call engineer by email if the error rate exceeds a threshold.",
+  "author": "platform",
+  "tags": ["devops", "monitoring", "alerts", "errors", "email"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Error Event",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "description": "POST { message, level, service, count } error data"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Is critical?",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          {
+            "field": "{{nodes.node-1.data.level}}",
+            "operator": "equals",
+            "value": "critical",
+            "combinator": "and"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert On-Call",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "transport": "smtp",
+        "to": "oncall@example.com",
+        "subject": "[CRITICAL] {{nodes.node-1.data.service}} — {{nodes.node-1.data.message}}",
+        "html": "<h2 style=\"color:red\">CRITICAL ERROR</h2><p><strong>Service:</strong> {{nodes.node-1.data.service}}</p><p><strong>Error:</strong> {{nodes.node-1.data.message}}</p><p><strong>Count:</strong> {{nodes.node-1.data.count}}</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "true" }
+  ]
+}

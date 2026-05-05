@@ -16,6 +16,9 @@ import { WorkflowRepository } from "./modules/workflows/WorkflowRepository.js";
 import { WorkflowService } from "./modules/workflows/WorkflowService.js";
 import { WorkflowController } from "./modules/workflows/WorkflowController.js";
 import { createWorkflowRouter } from "./modules/workflows/workflow.router.js";
+import { WorkflowVersionRepository } from "./modules/workflows/WorkflowVersionRepository.js";
+import { WorkflowVersionService } from "./modules/workflows/WorkflowVersionService.js";
+import { WorkflowVersionController } from "./modules/workflows/WorkflowVersionController.js";
 import { ExecutionLogRepository } from "./modules/executions/ExecutionLogRepository.js";
 import { ExecutionService } from "./modules/executions/ExecutionService.js";
 import { ExecutionController } from "./modules/executions/ExecutionController.js";
@@ -63,6 +66,15 @@ import { createCredentialRouter } from "./modules/credentials/credential.router.
 import { DatabaseClientFactory } from "./nodes/implementations/db/DatabaseClientFactory.js";
 import { BranchSyncManager } from "./engine/BranchSyncManager.js";
 import { redis } from "./config/redis.js";
+import { TemplateRepository } from "./modules/templates/TemplateRepository.js";
+import { TemplateService } from "./modules/templates/TemplateService.js";
+import { TemplateController } from "./modules/templates/TemplateController.js";
+import { createTemplateRouter } from "./modules/templates/template.router.js";
+import { AuditLogRepository } from "./modules/audit/AuditLogRepository.js";
+import { AuditLogService } from "./modules/audit/AuditLogService.js";
+import { AuditLogController } from "./modules/audit/AuditLogController.js";
+import { createAuditRouter } from "./modules/audit/audit.router.js";
+import cron from "node-cron";
 import type { IEnqueueable } from "./modules/workflows/WorkflowService.js";
 import type { IDLQRepository } from "./modules/queue/IDLQRepository.js";
 
@@ -166,12 +178,19 @@ export function createApp(deps: AppDeps = {}): Express {
   const webhookManagementController = new WebhookManagementController(webhookRepo);
   app.use("/api/webhooks", createWebhookManagementRouter(webhookManagementController));
 
+  // ── Audit Log service (created early — injected into other controllers) ─────
+  const auditRepo    = new AuditLogRepository(pgPool);
+  const auditService = new AuditLogService(auditRepo);
+
   // ── Workflows ───────────────────────────────────────────────────────────────
   const executionRepo = new ExecutionLogRepository(pgPool);
   const executionService = new ExecutionService(executionRepo);
+  const workflowVersionRepo = new WorkflowVersionRepository();
   const workflowService = new WorkflowService(workflowRepo, deps.workflowQueue ?? null);
-  const workflowController = new WorkflowController(workflowService, executionService);
-  app.use("/api/workflows", createWorkflowRouter(workflowController));
+  const workflowVersionService = new WorkflowVersionService(workflowVersionRepo, workflowRepo);
+  const workflowVersionController = new WorkflowVersionController(workflowVersionService, workflowService);
+  const workflowController = new WorkflowController(workflowService, executionService, workflowVersionService, auditService);
+  app.use("/api/workflows", createWorkflowRouter(workflowController, workflowVersionController));
 
   // ── Executions ──────────────────────────────────────────────────────────────
   const executionController = new ExecutionController(executionService);
@@ -204,7 +223,7 @@ export function createApp(deps: AppDeps = {}): Express {
   const credentialEncryption = new CredentialEncryption(env.MASTER_ENCRYPTION_KEY);
   const credentialRepository = new CredentialRepository();
   const credentialService = new CredentialService(credentialRepository, credentialEncryption);
-  const credentialController = new CredentialController(credentialService);
+  const credentialController = new CredentialController(credentialService, auditService);
   app.use("/api/credentials", createCredentialRouter(credentialController));
 
   // ── Marketplace ─────────────────────────────────────────────────────────────
@@ -227,6 +246,26 @@ export function createApp(deps: AppDeps = {}): Express {
   const integrationController = new IntegrationController(integrationService);
 
   app.use("/api/marketplace", createMarketplaceRouter(marketplaceController, integrationController));
+
+  // ── Templates ────────────────────────────────────────────────────────────────
+  const templateRepo       = new TemplateRepository();
+  const templateService    = new TemplateService(templateRepo, workflowService);
+  const templateController = new TemplateController(templateService);
+  app.use("/api/templates", createTemplateRouter(templateController));
+
+  // ── Audit Logs ───────────────────────────────────────────────────────────────
+  const auditController = new AuditLogController(auditService);
+  app.use("/api/audit-logs", createAuditRouter(auditController));
+
+  // Nightly retention cleanup — runs at 03:00 UTC every day
+  cron.schedule("0 3 * * *", async () => {
+    try {
+      const deleted = await auditService.runRetentionCleanup(env.AUDIT_LOG_RETENTION_DAYS);
+      console.log(`[audit] Retention cleanup deleted ${deleted} records older than ${env.AUDIT_LOG_RETENTION_DAYS} days`);
+    } catch (err) {
+      process.stderr.write(`[audit] Retention cleanup failed: ${String(err)}\n`);
+    }
+  });
 
   // Global error handler — must be last
   app.use(errorHandler);

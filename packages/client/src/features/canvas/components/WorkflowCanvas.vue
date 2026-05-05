@@ -20,6 +20,17 @@ import AiTransformNodeCard from "./nodes/AiTransformNodeCard.vue";
 import ConditionNodeCard from "./nodes/ConditionNodeCard.vue";
 import WebhookNodeCard from "./nodes/WebhookNodeCard.vue";
 import JavaScriptNodeCard from "./nodes/JavaScriptNodeCard.vue";
+import EmailNodeCard from "./nodes/EmailNodeCard.vue";
+import DatabaseNodeCard from "./nodes/DatabaseNodeCard.vue";
+import ConditionalNodeCard from "./nodes/ConditionalNodeCard.vue";
+import LoopNodeCard from "./nodes/LoopNodeCard.vue";
+import SubWorkflowNodeCard from "./nodes/SubWorkflowNodeCard.vue";
+import WaitNodeCard from "./nodes/WaitNodeCard.vue";
+import DataTransformNodeCard from "./nodes/DataTransformNodeCard.vue";
+import MergeNodeCard from "./nodes/MergeNodeCard.vue";
+import FunctionNodeCard from "./nodes/FunctionNodeCard.vue";
+import WebhookTriggerNodeCard from "./nodes/WebhookTriggerNodeCard.vue";
+import ScheduleTriggerNodeCard from "../nodes/schedule/ScheduleTriggerNodeCard.vue";
 
 const props = defineProps<{ workflowId?: string }>();
 
@@ -34,12 +45,27 @@ const { sendCursor } = props.workflowId
 
 // ── Custom node type registry ───────────────────────────────────────────────
 
-const nodeTypes = {
-  http_request: markRaw(HttpRequestNodeCard),
-  ai_transform: markRaw(AiTransformNodeCard),
-  condition: markRaw(ConditionNodeCard),
-  webhook: markRaw(WebhookNodeCard),
-  javascript: markRaw(JavaScriptNodeCard),
+// Vue Flow's NodeTypesObject requires NodeProps on every component, but some of
+// our node cards use defineEmits which makes the inferred type incompatible.
+// The cast is safe — Vue Flow accepts any component at runtime.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const nodeTypes: Record<string, any> = {
+  http_request:     markRaw(HttpRequestNodeCard),
+  ai_transform:     markRaw(AiTransformNodeCard),
+  condition:        markRaw(ConditionNodeCard),
+  webhook:          markRaw(WebhookNodeCard),
+  javascript:       markRaw(JavaScriptNodeCard),
+  email:            markRaw(EmailNodeCard),
+  database:         markRaw(DatabaseNodeCard),
+  conditional:      markRaw(ConditionalNodeCard),
+  loop:             markRaw(LoopNodeCard),
+  sub_workflow:     markRaw(SubWorkflowNodeCard),
+  wait:             markRaw(WaitNodeCard),
+  data_transform:   markRaw(DataTransformNodeCard),
+  merge:            markRaw(MergeNodeCard),
+  function:         markRaw(FunctionNodeCard),
+  webhook_trigger:  markRaw(WebhookTriggerNodeCard),
+  schedule_trigger: markRaw(ScheduleTriggerNodeCard),
 };
 
 // ── Category → edge colour ──────────────────────────────────────────────────

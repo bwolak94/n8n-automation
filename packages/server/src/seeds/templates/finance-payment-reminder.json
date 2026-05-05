@@ -1,0 +1,64 @@
+{
+  "name": "Payment Reminder Sequence",
+  "category": "Finance",
+  "description": "Send escalating payment reminders for overdue invoices: 7 days overdue, 14 days overdue, and 30 days overdue with escalation to collections team.",
+  "author": "platform",
+  "tags": ["payment", "reminder", "invoice", "overdue", "finance"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 9am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 9 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Overdue Invoices",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, customer_email, customer_name, amount, due_date, CURRENT_DATE - due_date AS days_overdue FROM invoices WHERE status = 'unpaid' AND due_date < CURRENT_DATE AND CURRENT_DATE - due_date IN (7, 14, 30)",
+        "maxRows": 500
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Process Each Overdue Invoice",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 500
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Overdue Reminder",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "transport": "smtp",
+        "to": "{{$item.value.customer_email}}",
+        "subject": "Payment Reminder: Invoice overdue by {{$item.value.days_overdue}} days",
+        "html": "<h2>Payment Reminder</h2><p>Dear {{$item.value.customer_name}}, your invoice for <strong>${{$item.value.amount}}</strong> was due on {{$item.value.due_date}} and is now {{$item.value.days_overdue}} days overdue.</p><p>Please <a href='https://billing.example.com/pay/{{$item.value.id}}'>pay now</a> to avoid service interruption.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

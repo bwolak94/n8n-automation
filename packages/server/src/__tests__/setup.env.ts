@@ -19,3 +19,4 @@ process.env["WORKER_CONCURRENCY"] = "2";
 process.env["INVITE_SECRET"] = "test-invite-secret-32chars-long!!";
 process.env["MARKETPLACE_UPLOAD_DIR"] = "/tmp/marketplace-test";
 process.env["MASTER_ENCRYPTION_KEY"] = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+process.env["AUDIT_LOG_RETENTION_DAYS"] = "365";

@@ -1,0 +1,75 @@
+{
+  "name": "Expense Report Processor",
+  "category": "Finance",
+  "description": "Process submitted expense reports by validating amounts, checking policy compliance, and routing to the appropriate approver based on the expense amount.",
+  "author": "platform",
+  "tags": ["expense", "approval", "finance", "routing", "compliance"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Expense Report Submitted",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "function",
+      "category": "logic",
+      "label": "Validate & Categorize",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "code": "const r = $input;\nconst total = r.items?.reduce((s, i) => s + i.amount, 0) || 0;\nconst needsVP = total > 5000;\nconst needsDirector = total > 1000 && total <= 5000;\nreturn { total, employeeEmail: r.employeeEmail, employeeName: r.employeeName, approverLevel: needsVP ? 'vp' : needsDirector ? 'director' : 'manager', isCompliant: total < 10000 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Route by Amount",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "switch",
+        "rules": [
+          { "field": "{{nodes.node-2.data.approverLevel}}", "operator": "equals", "value": "vp", "branch": "vp" },
+          { "field": "{{nodes.node-2.data.approverLevel}}", "operator": "equals", "value": "director", "branch": "director" }
+        ],
+        "defaultBranch": "manager"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "VP Approval Request",
+      "position": { "x": 900, "y": 100 },
+      "config": {
+        "transport": "smtp",
+        "to": "vp-finance@example.com",
+        "subject": "Expense Approval Required: ${{nodes.node-2.data.total}} from {{nodes.node-2.data.employeeName}}",
+        "html": "<h2>Expense Report Approval</h2><p>Amount: <strong>${{nodes.node-2.data.total}}</strong> — requires VP approval.</p>"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Manager Approval Request",
+      "position": { "x": 900, "y": 300 },
+      "config": {
+        "transport": "smtp",
+        "to": "manager@example.com",
+        "subject": "Expense Approval: ${{nodes.node-2.data.total}} from {{nodes.node-2.data.employeeName}}",
+        "html": "<h2>Expense Report Approval</h2><p>Amount: <strong>${{nodes.node-2.data.total}}</strong> — requires manager approval.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "vp" },
+    { "id": "e-3-5", "source": "node-3", "target": "node-5", "sourceHandle": "manager" }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "name": "AI Data Anomaly Detection",
+  "category": "AI",
+  "description": "Use AI to detect anomalies in your business metrics. Analyzes trends in revenue, user signups, or error rates and explains potential causes when outliers are detected.",
+  "author": "platform",
+  "tags": ["ai", "anomaly-detection", "analytics", "monitoring", "metrics"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 6am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 6 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Last 30 Days Metrics",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT DATE(created_at) AS day, COUNT(*) AS signups, SUM(revenue) AS revenue FROM daily_metrics WHERE created_at >= NOW() - INTERVAL '30 days' GROUP BY DATE(created_at) ORDER BY day",
+        "maxRows": 30
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Detect Anomalies",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "prompt": "Analyze these 30 days of business metrics for anomalies. Identify any days that are statistical outliers (>2 standard deviations from the mean). Return JSON: { has_anomalies: boolean, anomalies: [{date, metric, value, expected, explanation}], summary: string }.\n\nMetrics:\n{{nodes.node-2.data.rows}}",
+        "outputField": "analysis"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Anomalies Found?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.analysis.has_anomalies}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Team to Anomalies",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "analytics@example.com",
+        "subject": "Metric Anomalies Detected",
+        "html": "<h2>Anomaly Detection Report</h2><p>{{nodes.node-3.data.analysis.summary}}</p><h3>Anomalies</h3><pre>{{nodes.node-3.data.analysis.anomalies}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

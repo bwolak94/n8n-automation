@@ -1,0 +1,48 @@
+{
+  "name": "Lead Scoring Automation",
+  "category": "CRM",
+  "description": "Recalculate lead scores hourly based on activity signals (email opens, page visits, demo requests). Updates CRM and alerts sales when a lead reaches MQL threshold.",
+  "author": "platform",
+  "tags": ["crm", "lead-scoring", "mql", "sales", "automation"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Hour",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Calculate Lead Scores",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "UPDATE leads SET score = (SELECT (email_opens * 2 + page_views + demo_requests * 10) FROM lead_activities WHERE lead_id = leads.id) WHERE status = 'open' RETURNING id, email, score, score >= 50 AS is_mql",
+        "maxRows": 1000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Push MQLs to CRM",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.crm.example.com/leads/bulk-update",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN" },
+        "body": { "leads": "{{nodes.node-2.data.rows}}" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { createApp } from "./app.js";
 import { connectDatabases, pgPool } from "./config/database.js";
+import { seedTemplates } from "./seeds/seedTemplates.js";
 import { env } from "./config/env.js";
 import { redis, bullmqRedis } from "./config/redis.js";
 import { Redis } from "ioredis";
@@ -21,9 +22,12 @@ import { WorkflowRepository } from "./modules/workflows/WorkflowRepository.js";
 import { ExecutionLogRepository } from "./modules/executions/ExecutionLogRepository.js";
 import { OpLogRepository } from "./modules/collaboration/OpLogRepository.js";
 import { CollaborationGateway } from "./modules/collaboration/CollaborationGateway.js";
+import { DebugRunner } from "./engine/DebugRunner.js";
+import { DebugGateway } from "./modules/debug/DebugGateway.js";
 
 async function main(): Promise<void> {
   await connectDatabases();
+  await seedTemplates();
 
   const workflowQueue = createWorkflowQueue(bullmqRedis);
   const dlqRepository = createBullMQDLQRepository(bullmqRedis, workflowQueue);
@@ -71,6 +75,10 @@ async function main(): Promise<void> {
     pubClient,
     subClient
   );
+
+  // ── Debug gateway (Socket.io /debug namespace) ───────────────────────────────
+  const debugRunner  = new DebugRunner(workflowRepo, nodeExecutor, sorter, redis);
+  const _debugGateway = new DebugGateway(collaborationGateway.io, debugRunner);
 
   httpServer.listen(env.PORT, () => {
     console.log(

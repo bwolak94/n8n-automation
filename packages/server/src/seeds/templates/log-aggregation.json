@@ -1,0 +1,58 @@
+{
+  "name": "Log Aggregation & Summary",
+  "category": "Data Processing",
+  "description": "Collect application logs from multiple services every hour, aggregate error counts by service, and store a summary in the database for dashboard queries.",
+  "author": "platform",
+  "tags": ["logs", "aggregation", "database", "monitoring", "schedule"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Hour",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Logs from Loki",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://loki.example.com/loki/api/v1/query_range?query={level='error'}&start={{nodes.node-1.data.timestamp}}&limit=1000",
+        "headers": { "Authorization": "Bearer YOUR_LOKI_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Count Errors by Service",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const streams = $input?.data?.result || [];\nconst counts = {};\nfor (const s of streams) { const svc = s.stream?.service || 'unknown'; counts[svc] = (counts[svc] || 0) + s.values.length; }\nreturn { summary: Object.entries(counts).map(([service, errorCount]) => ({ service, errorCount, hour: new Date().toISOString() })) };",
+        "timeoutMs": 5000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "database",
+      "category": "actions",
+      "label": "Store Hourly Summary",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO log_summary (service, error_count, hour) SELECT service, error_count, hour::timestamptz FROM json_populate_recordset(null::log_summary_type, '{{nodes.node-3.data.summary}}')"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

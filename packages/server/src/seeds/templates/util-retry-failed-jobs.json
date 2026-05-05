@@ -1,0 +1,64 @@
+{
+  "name": "Retry Failed Background Jobs",
+  "category": "Utilities",
+  "description": "Scan the dead-letter queue every 30 minutes for failed jobs. Retry eligible failures (not exceeding max attempts) and alert the engineering team on persistent failures.",
+  "author": "platform",
+  "tags": ["retry", "queue", "dead-letter", "background-jobs", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 30 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/30 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Retriable Failed Jobs",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, job_type, payload, attempts FROM failed_jobs WHERE attempts < 3 AND failed_at > NOW() - INTERVAL '24 hours' ORDER BY failed_at ASC LIMIT 20",
+        "maxRows": 20
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Retry Each Job",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": true,
+        "continueOnError": true,
+        "maxIterations": 20
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Requeue Job",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "method": "POST",
+        "url": "https://worker.internal/jobs/retry",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "jobId": "{{$item.value.id}}", "jobType": "{{$item.value.job_type}}", "payload": "{{$item.value.payload}}" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

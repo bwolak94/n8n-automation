@@ -1,0 +1,61 @@
+{
+  "name": "Customer Onboarding Workflow",
+  "category": "CRM",
+  "description": "Automate the full customer onboarding process: create accounts in downstream systems, send welcome materials, and notify the customer success manager.",
+  "author": "platform",
+  "tags": ["crm", "onboarding", "customer", "automation", "workflow"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Customer Signed Up",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create Account in App",
+      "position": { "x": 350, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.example.com/accounts",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN" },
+        "body": { "email": "{{nodes.node-1.data.email}}", "plan": "{{nodes.node-1.data.plan}}" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Onboarding Email",
+      "position": { "x": 350, "y": 300 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.email}}",
+        "subject": "Your account is ready!",
+        "html": "<h1>Welcome aboard!</h1><p>Your account has been set up. <a href='https://app.example.com/login'>Log in now</a>.</p>"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Notify CSM in Slack",
+      "position": { "x": 700, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": ":rocket: New customer onboarded: *{{nodes.node-1.data.email}}* (Plan: {{nodes.node-1.data.plan}})" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" }
+  ]
+}

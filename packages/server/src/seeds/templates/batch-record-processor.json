@@ -1,0 +1,78 @@
+{
+  "name": "Batch Record Processor",
+  "category": "Data Processing",
+  "description": "Pull a batch of unprocessed records from the database, process each one via an API call, and mark them as processed. Uses a loop node for efficient iteration.",
+  "author": "platform",
+  "tags": ["batch", "loop", "database", "processing", "queue"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 10 minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/10 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Pending Records",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, payload FROM job_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 50 FOR UPDATE SKIP LOCKED",
+        "maxRows": 50
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Process Each Record",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": true,
+        "continueOnError": true,
+        "maxIterations": 50
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Process via API",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "method": "POST",
+        "url": "https://api.processor.example.com/process",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "id": "{{$item.value.id}}", "payload": "{{$item.value.payload}}" }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Mark as Processed",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "UPDATE job_queue SET status = 'processed', processed_at = NOW() WHERE status = 'pending' AND created_at < NOW()"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

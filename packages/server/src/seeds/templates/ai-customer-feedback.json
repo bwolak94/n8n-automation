@@ -1,0 +1,60 @@
+{
+  "name": "AI Customer Feedback Analysis",
+  "category": "AI",
+  "description": "Aggregate customer feedback from multiple sources weekly, use AI to identify top themes and pain points, and generate an executive summary for the product team.",
+  "author": "platform",
+  "tags": ["ai", "feedback", "product", "analytics", "insights"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Friday at 4pm",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 16 * * 5", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Week's Feedback",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT source, text, rating, created_at FROM customer_feedback WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC LIMIT 200",
+        "maxRows": 200
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Analyze & Synthesize",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "prompt": "Analyze this week's customer feedback. Return JSON: { top_themes: [{theme, count, example}], pain_points: string[], positive_highlights: string[], avg_sentiment_score: number, executive_summary: string, recommended_actions: string[] }.\n\nFeedback data:\n{{nodes.node-2.data.rows}}",
+        "outputField": "insights"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Weekly Insights to Product Team",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "product@example.com",
+        "subject": "Weekly Customer Feedback Insights",
+        "html": "<h2>Customer Feedback Summary</h2><h3>Executive Summary</h3><p>{{nodes.node-3.data.insights.executive_summary}}</p><h3>Top Themes</h3><pre>{{nodes.node-3.data.insights.top_themes}}</pre><h3>Recommended Actions</h3><pre>{{nodes.node-3.data.insights.recommended_actions}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

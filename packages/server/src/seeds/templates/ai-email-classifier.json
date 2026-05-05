@@ -1,0 +1,67 @@
+{
+  "name": "AI Email Classifier",
+  "category": "AI",
+  "description": "Receive emails via webhook and use Claude AI to classify them into categories (support, sales, spam). Routes to the appropriate handler based on the classification.",
+  "author": "platform",
+  "tags": ["ai", "claude", "email", "classification", "nlp"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Inbound Email Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "description": "Receives parsed inbound email data"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Classify Email",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Classify the following email into exactly one category: support, sales, or spam. Respond with only the category name.\n\nSubject: {{nodes.node-1.data.subject}}\nBody: {{nodes.node-1.data.body}}",
+        "outputField": "category"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Route by category",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "switch",
+        "rules": [
+          { "field": "{{nodes.node-2.data.category}}", "operator": "equals", "value": "support", "branch": "support" },
+          { "field": "{{nodes.node-2.data.category}}", "operator": "equals", "value": "sales", "branch": "sales" }
+        ],
+        "defaultBranch": "spam"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create Support Ticket",
+      "position": { "x": 850, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://your-helpdesk.example.com/api/tickets",
+        "headers": {},
+        "body": {
+          "subject": "{{nodes.node-1.data.subject}}",
+          "body": "{{nodes.node-1.data.body}}"
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "support" }
+  ]
+}

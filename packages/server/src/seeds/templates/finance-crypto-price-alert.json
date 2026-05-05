@@ -1,0 +1,72 @@
+{
+  "name": "Crypto Price Alert",
+  "category": "Finance",
+  "description": "Monitor cryptocurrency prices every 5 minutes via a public API. Send email and Slack alerts when your target assets move more than a configurable percentage.",
+  "author": "platform",
+  "tags": ["crypto", "bitcoin", "price-alert", "finance", "monitoring"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 5 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/5 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Prices from CoinGecko",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Check Price Movement",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const btc = $input.bitcoin || {};\nconst eth = $input.ethereum || {};\nconst alerts = [];\nif (Math.abs(btc.usd_24h_change || 0) > 5) alerts.push(`BTC: $${btc.usd} (${btc.usd_24h_change?.toFixed(2)}% 24h)`);\nif (Math.abs(eth.usd_24h_change || 0) > 5) alerts.push(`ETH: $${eth.usd} (${eth.usd_24h_change?.toFixed(2)}% 24h)`);\nreturn { hasAlerts: alerts.length > 0, alerts, btcPrice: btc.usd, ethPrice: eth.usd };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Big Move?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.hasAlerts}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Price Alert",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "trader@example.com",
+        "subject": "Crypto Alert: Significant price movement detected",
+        "html": "<h2>Price Alert</h2><pre>{{nodes.node-3.data.alerts}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

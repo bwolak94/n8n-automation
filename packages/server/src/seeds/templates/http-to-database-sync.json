@@ -1,0 +1,62 @@
+{
+  "name": "HTTP to Database Sync",
+  "category": "Data Processing",
+  "description": "Fetch data from an external REST API and insert it into your PostgreSQL database. Runs on a schedule to keep your data fresh.",
+  "author": "platform",
+  "tags": ["database", "api", "sync", "postgres", "etl"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every hour",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "cron": "0 * * * *",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch from API",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/data",
+        "headers": { "Authorization": "Bearer YOUR_API_KEY" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "data",
+      "label": "Transform Records",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const records = $input.data.items || [];\nreturn { transformed: records.map(r => ({ id: r.id, name: r.name, updatedAt: new Date().toISOString() })) };",
+        "timeoutMs": 5000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "database",
+      "category": "actions",
+      "label": "Upsert to Postgres",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO synced_data (id, name, updated_at) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, updated_at = EXCLUDED.updated_at",
+        "params": ["{{nodes.node-3.data.transformed[0].id}}", "{{nodes.node-3.data.transformed[0].name}}", "{{nodes.node-3.data.transformed[0].updatedAt}}"]
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

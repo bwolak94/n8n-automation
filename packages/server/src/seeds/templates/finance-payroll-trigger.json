@@ -1,0 +1,62 @@
+{
+  "name": "Payroll Processing Trigger",
+  "category": "Finance",
+  "description": "On payroll processing dates, validate employee hours, calculate gross pay, and trigger payroll submission to your payroll provider API with audit logging.",
+  "author": "platform",
+  "tags": ["payroll", "finance", "hr", "automation", "schedule"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Bi-weekly Payroll (1st & 15th)",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 9 1,15 * *", "timezone": "America/New_York" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Payroll Period Hours",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT employee_id, email, SUM(hours) AS total_hours, hourly_rate, SUM(hours) * hourly_rate AS gross_pay FROM timesheets t JOIN employees e ON e.id = t.employee_id WHERE period_start >= CURRENT_DATE - 14 GROUP BY employee_id, email, hourly_rate",
+        "maxRows": 1000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Submit to Payroll Provider",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.gusto.example.com/payrolls/submit",
+        "headers": { "Authorization": "Bearer YOUR_GUSTO_TOKEN", "Content-Type": "application/json" },
+        "body": { "employees": "{{nodes.node-2.data.rows}}", "periodEnd": "{{nodes.node-1.data.date}}" }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Confirmation to HR",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "hr@example.com",
+        "subject": "Payroll Submitted — {{nodes.node-2.data.rowCount}} employees processed",
+        "html": "<h2>Payroll Submitted</h2><p>{{nodes.node-2.data.rowCount}} employees processed for the period ending {{nodes.node-1.data.date}}.</p><p>Confirmation ID: {{nodes.node-3.data.confirmationId}}</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

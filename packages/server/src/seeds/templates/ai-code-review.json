@@ -1,0 +1,58 @@
+{
+  "name": "AI Code Review Assistant",
+  "category": "AI",
+  "description": "Automatically review pull request diffs using Claude AI. Posts review comments with security concerns, performance issues, and best practice suggestions directly to GitHub.",
+  "author": "platform",
+  "tags": ["ai", "code-review", "github", "pr", "security"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "PR Opened / Updated",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch PR Diff",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{nodes.node-1.data.repository.full_name}}/pulls/{{nodes.node-1.data.number}}/files",
+        "headers": { "Authorization": "Bearer YOUR_GITHUB_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "AI Code Review",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "prompt": "Review this pull request diff as a senior engineer. Focus on: security vulnerabilities, performance issues, code smells, and missing error handling. Be concise and constructive.\n\nPR Title: {{nodes.node-1.data.pull_request.title}}\n\nDiff:\n{{nodes.node-2.data}}",
+        "outputField": "review"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post Review to GitHub",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/{{nodes.node-1.data.repository.full_name}}/pulls/{{nodes.node-1.data.number}}/reviews",
+        "headers": { "Authorization": "Bearer YOUR_GITHUB_TOKEN", "Content-Type": "application/json" },
+        "body": { "body": "## AI Code Review\n\n{{nodes.node-3.data.review}}", "event": "COMMENT" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

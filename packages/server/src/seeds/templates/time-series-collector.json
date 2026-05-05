@@ -1,0 +1,46 @@
+{
+  "name": "Time Series Metrics Collector",
+  "category": "Data Processing",
+  "description": "Collect numeric metrics from a monitoring endpoint every minute and append them to a time-series table. Enables trend analysis and anomaly detection.",
+  "author": "platform",
+  "tags": ["metrics", "time-series", "monitoring", "schedule", "database"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Minute",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "* * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Scrape Metrics Endpoint",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://your-app.example.com/metrics/json",
+        "headers": { "Authorization": "Bearer YOUR_METRICS_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "Insert Metric Snapshot",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO metrics_timeseries (ts, http_requests_total, error_count, avg_latency_ms, active_connections) VALUES (NOW(), {{nodes.node-2.data.http_requests_total}}, {{nodes.node-2.data.error_count}}, {{nodes.node-2.data.avg_latency_ms}}, {{nodes.node-2.data.active_connections}})"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "SMS Alert via Twilio",
+  "category": "Notifications",
+  "description": "Send an SMS notification via Twilio when a critical webhook event fires. Ideal for on-call engineers, payment failures, or urgent system alerts.",
+  "author": "platform",
+  "tags": ["sms", "twilio", "alert", "webhook", "on-call"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Alert Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Send SMS via Twilio",
+      "position": { "x": 400, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_ACCOUNT_SID/Messages.json",
+        "headers": {
+          "Authorization": "Basic YOUR_BASE64_AUTH",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "To=%2B1PHONE&From=%2B1TWILIO_NUMBER&Body=ALERT%3A%20{{nodes.node-1.data.message}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" }
+  ]
+}

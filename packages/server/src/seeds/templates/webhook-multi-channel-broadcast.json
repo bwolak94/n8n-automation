@@ -1,0 +1,61 @@
+{
+  "name": "Multi-Channel Broadcast",
+  "category": "Notifications",
+  "description": "Broadcast a single webhook event to Slack, email, and an external webhook simultaneously. Perfect for critical announcements that must reach every channel.",
+  "author": "platform",
+  "tags": ["broadcast", "slack", "email", "webhook", "multi-channel"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Broadcast Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Slack Notification",
+      "position": { "x": 400, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": "{{nodes.node-1.data.message}}" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Email Notification",
+      "position": { "x": 400, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "team@example.com",
+        "subject": "Broadcast: {{nodes.node-1.data.title}}",
+        "html": "<p>{{nodes.node-1.data.message}}</p>"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Forward to External System",
+      "position": { "x": 400, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://external-system.example.com/notify",
+        "headers": { "Content-Type": "application/json", "X-Api-Key": "YOUR_KEY" },
+        "body": { "event": "{{nodes.node-1.data.event}}", "payload": "{{nodes.node-1.data}}" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" },
+    { "id": "e-1-4", "source": "node-1", "target": "node-4" }
+  ]
+}

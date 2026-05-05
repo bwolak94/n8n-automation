@@ -1,0 +1,55 @@
+{
+  "name": "Failed Payment Retry",
+  "category": "Finance",
+  "description": "When a Stripe payment fails, wait 3 days and automatically retry the charge. Notify the customer via email about the failure and the upcoming retry attempt.",
+  "author": "platform",
+  "tags": ["stripe", "payment", "retry", "failed", "finance"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Stripe payment_intent.payment_failed",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "email",
+      "category": "communication",
+      "label": "Notify Customer of Failure",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.customer_email}}",
+        "subject": "Payment failed — we'll retry in 3 days",
+        "html": "<p>Hi, your payment of <strong>${{nodes.node-1.data.amount}}</strong> failed. We'll automatically retry in 3 days. Please <a href='https://billing.example.com/update-card'>update your payment method</a> if needed.</p>"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait 3 Days",
+      "position": { "x": 600, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 3, "unit": "days" } }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Retry Charge via Stripe",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/payment_intents/{{nodes.node-1.data.payment_intent_id}}/confirm",
+        "headers": { "Authorization": "Bearer YOUR_STRIPE_SECRET_KEY", "Content-Type": "application/x-www-form-urlencoded" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

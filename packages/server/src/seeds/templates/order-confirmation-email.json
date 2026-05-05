@@ -1,0 +1,46 @@
+{
+  "name": "Order Confirmation Email",
+  "category": "Notifications",
+  "description": "Send a branded order confirmation email whenever a new order webhook arrives. Fetches order details and emails the customer a receipt.",
+  "author": "platform",
+  "tags": ["ecommerce", "order", "email", "confirmation", "webhook"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Order Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Order Details",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/orders/{{nodes.node-1.data.orderId}}",
+        "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Confirmation",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.customerEmail}}",
+        "subject": "Order Confirmed #{{nodes.node-1.data.orderId}}",
+        "html": "<h1>Thank you for your order!</h1><p>Order ID: <strong>{{nodes.node-1.data.orderId}}</strong></p><p>Total: <strong>${{nodes.node-2.data.total}}</strong></p><p>We'll ship within 2 business days.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

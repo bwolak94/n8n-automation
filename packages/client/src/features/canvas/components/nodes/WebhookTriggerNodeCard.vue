@@ -72,7 +72,7 @@ async function copyUrl(): Promise<void> {
 
     <p class="text-xs text-gray-500">
       Receive HTTP requests at a unique URL to trigger this workflow.
-      Trigger data is available via <code class="rounded bg-gray-100 px-1">{{ "{{ $trigger.body }}" }}</code>.
+      Trigger data is available via <code class="rounded bg-gray-100 px-1"><span v-pre>{{ $trigger.body }}</span></code>.
     </p>
 
     <!-- Method selector -->

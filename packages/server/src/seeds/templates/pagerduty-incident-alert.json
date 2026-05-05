@@ -1,0 +1,70 @@
+{
+  "name": "PagerDuty Incident Alert",
+  "category": "Notifications",
+  "description": "Trigger a PagerDuty incident when a webhook detects a critical system error. Includes conditional routing to escalate P1 incidents immediately.",
+  "author": "platform",
+  "tags": ["pagerduty", "incident", "alert", "on-call", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Monitor Alert Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Check Severity",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-1.data.severity}}", "operator": "equals", "value": "critical" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create PagerDuty Incident",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "routing_key": "YOUR_PAGERDUTY_ROUTING_KEY",
+          "event_action": "trigger",
+          "payload": {
+            "summary": "{{nodes.node-1.data.message}}",
+            "severity": "critical",
+            "source": "{{nodes.node-1.data.source}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Warning Email",
+      "position": { "x": 600, "y": 320 },
+      "config": {
+        "transport": "smtp",
+        "to": "ops@example.com",
+        "subject": "Warning: {{nodes.node-1.data.message}}",
+        "html": "<p>A non-critical alert was triggered: <strong>{{nodes.node-1.data.message}}</strong></p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "true" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4", "sourceHandle": "false" }
+  ]
+}

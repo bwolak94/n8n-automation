@@ -1,0 +1,62 @@
+{
+  "name": "Data Enrichment Pipeline",
+  "category": "Data Processing",
+  "description": "Enrich contact records with company data from Clearbit or similar APIs. Triggered by webhook when a new contact is created, updates the CRM automatically.",
+  "author": "platform",
+  "tags": ["enrichment", "clearbit", "crm", "contacts", "api"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Contact Created",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Enrich via Clearbit",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://person.clearbit.com/v2/combined/find?email={{nodes.node-1.data.email}}",
+        "headers": { "Authorization": "Bearer YOUR_CLEARBIT_KEY" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Extract Enrichment Data",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const p = $input.person || {};\nconst c = $input.company || {};\nreturn { contactId: '{{nodes.node-1.data.id}}', jobTitle: p.employment?.title, company: c.name, industry: c.category?.industry, employees: c.metrics?.employees };",
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Update CRM Contact",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "PATCH",
+        "url": "https://api.crm.example.com/contacts/{{nodes.node-3.data.contactId}}",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_CRM_TOKEN" },
+        "body": {
+          "jobTitle": "{{nodes.node-3.data.jobTitle}}",
+          "company": "{{nodes.node-3.data.company}}",
+          "industry": "{{nodes.node-3.data.industry}}"
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

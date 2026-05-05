@@ -1,0 +1,45 @@
+{
+  "name": "JSON Transformation Pipeline",
+  "category": "Data Processing",
+  "description": "Receive a JSON payload via webhook, reshape and enrich the data using a function node, then forward the transformed result to a downstream API.",
+  "author": "platform",
+  "tags": ["json", "transform", "webhook", "data", "mapping"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Inbound Payload",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "function",
+      "category": "logic",
+      "label": "Reshape & Enrich",
+      "position": { "x": 400, "y": 200 },
+      "config": {
+        "code": "const raw = $input;\nreturn { id: raw.userId, fullName: `${raw.firstName} ${raw.lastName}`, email: raw.email?.toLowerCase(), source: raw.source || 'unknown', processedAt: new Date().toISOString() };",
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Forward to Downstream API",
+      "position": { "x": 700, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.downstream.example.com/ingest",
+        "headers": { "Content-Type": "application/json", "X-Api-Key": "YOUR_KEY" },
+        "body": "{{nodes.node-2.data}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

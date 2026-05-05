@@ -1,0 +1,77 @@
+{
+  "name": "Server CPU & Memory Alert",
+  "category": "DevOps",
+  "description": "Poll Prometheus or Datadog every 5 minutes for CPU and memory metrics. Alert on-call engineers via PagerDuty and Slack when thresholds are exceeded.",
+  "author": "platform",
+  "tags": ["prometheus", "cpu", "memory", "alert", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 5 Minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/5 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Query Prometheus",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://prometheus.example.com/api/v1/query?query=avg(rate(node_cpu_seconds_total{mode='idle'}[5m]))*100",
+        "headers": { "Authorization": "Bearer YOUR_PROM_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Extract CPU %",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const result = $input?.data?.result?.[0];\nconst idle = parseFloat(result?.value?.[1] || '100');\nreturn { cpuUsage: Math.round(100 - idle), raw: $input };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "CPU > 90%?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.cpuUsage}}", "operator": "greaterThan", "value": "90" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Page On-call Engineer",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "routing_key": "YOUR_PAGERDUTY_KEY",
+          "event_action": "trigger",
+          "payload": { "summary": "CPU at {{nodes.node-3.data.cpuUsage}}%", "severity": "critical", "source": "prometheus" }
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

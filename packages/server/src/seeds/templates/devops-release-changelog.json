@@ -1,0 +1,58 @@
+{
+  "name": "Auto Release Changelog",
+  "category": "DevOps",
+  "description": "When a new GitHub release is published, automatically generate a formatted changelog using AI and post it to Slack and the company wiki.",
+  "author": "platform",
+  "tags": ["github", "release", "changelog", "ai", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "GitHub Release Published",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Commits Since Last Tag",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{nodes.node-1.data.repository.full_name}}/commits?since={{nodes.node-1.data.release.published_at}}",
+        "headers": { "Authorization": "Bearer YOUR_GITHUB_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Generate Changelog",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "prompt": "Generate a user-friendly changelog from these commit messages. Group by type (Features, Bug Fixes, Improvements). Keep it concise.\n\nCommits:\n{{nodes.node-2.data}}",
+        "outputField": "changelog"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post to Slack #releases",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": ":rocket: *{{nodes.node-1.data.release.tag_name}} released*\n\n{{nodes.node-3.data.changelog}}" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

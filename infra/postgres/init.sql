@@ -15,8 +15,11 @@ CREATE TABLE IF NOT EXISTS executions (
   started_at   TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
   duration_ms  INTEGER,
-  error        TEXT,
-  created_at   TIMESTAMPTZ  DEFAULT NOW()
+  error                TEXT,
+  parent_execution_id  UUID,
+  resume_after         TIMESTAMPTZ,
+  resume_data          JSONB,
+  created_at           TIMESTAMPTZ  DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS execution_steps (
@@ -49,3 +52,29 @@ CREATE INDEX IF NOT EXISTS idx_steps_execution_id
 -- but RLS adds a database-level safety net.
 ALTER TABLE executions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_steps ENABLE ROW LEVEL SECURITY;
+
+-- =============================================================================
+-- Audit logs — immutable append-only table.  No UPDATE or DELETE in app layer.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id          UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   TEXT      NOT NULL,
+  actor_id    TEXT      NOT NULL,
+  actor_email TEXT,
+  ip_address  INET,
+  user_agent  TEXT,
+  event_type  TEXT      NOT NULL,
+  entity_type TEXT,
+  entity_id   TEXT,
+  metadata    JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS audit_logs_tenant_created
+  ON audit_logs(tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS audit_logs_entity
+  ON audit_logs(tenant_id, entity_type, entity_id);
+
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;

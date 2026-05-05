@@ -1,0 +1,48 @@
+{
+  "name": "New User Welcome Email",
+  "category": "CRM",
+  "description": "Send a personalized welcome email when a new user registers. Triggered by a webhook from your app and sends an HTML email with the user's name.",
+  "author": "platform",
+  "tags": ["crm", "email", "onboarding", "users", "welcome"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New User Signup",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "description": "Called by your app when a new user registers"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "wait",
+      "category": "logic",
+      "label": "Wait 5 minutes",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "duration",
+        "duration": { "value": 5, "unit": "minutes" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Welcome Email",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.email}}",
+        "subject": "Welcome to the platform, {{nodes.node-1.data.name}}!",
+        "html": "<h1>Welcome, {{nodes.node-1.data.name}}!</h1><p>We're thrilled to have you on board. Get started by exploring our features.</p><p>If you need any help, just reply to this email.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

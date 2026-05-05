@@ -1,0 +1,73 @@
+{
+  "name": "Database Backup Verification",
+  "category": "DevOps",
+  "description": "After each nightly database backup, verify the backup file exists and its size is within expected range. Alert if the backup is missing or suspiciously small.",
+  "author": "platform",
+  "tags": ["backup", "database", "verification", "devops", "alert"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 5am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 5 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Check Backup Manifest",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://backup-api.example.com/latest?db=production",
+        "headers": { "Authorization": "Bearer YOUR_BACKUP_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Validate Backup",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const b = $input;\nconst ageDays = (Date.now() - new Date(b.createdAt).getTime()) / 86400000;\nconst sizeMb = b.sizeMb || 0;\nconst valid = ageDays < 1 && sizeMb > 100;\nreturn { valid, ageDays: ageDays.toFixed(2), sizeMb, reason: !valid ? (ageDays >= 1 ? 'too_old' : 'too_small') : null };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Backup Valid?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.valid}}", "operator": "equals", "value": "false" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert on Backup Failure",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "dba@example.com",
+        "subject": "BACKUP ALERT: Production backup verification failed",
+        "html": "<h2>Backup Verification Failed</h2><p>Reason: <strong>{{nodes.node-3.data.reason}}</strong></p><p>Age: {{nodes.node-3.data.ageDays}} days | Size: {{nodes.node-3.data.sizeMb}} MB</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

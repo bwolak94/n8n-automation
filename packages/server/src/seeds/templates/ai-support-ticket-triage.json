@@ -1,0 +1,63 @@
+{
+  "name": "AI Support Ticket Triage",
+  "category": "AI",
+  "description": "Automatically triage incoming support tickets using AI. Categorizes by issue type, estimates urgency, suggests a response, and routes to the right team queue.",
+  "author": "platform",
+  "tags": ["ai", "support", "triage", "helpdesk", "automation"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Support Ticket",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Triage Ticket",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Triage this support ticket. Return a JSON object with: category (billing/technical/feature-request/account/other), urgency (low/medium/high/critical), suggested_response (a helpful draft reply), and team (billing-team/engineering/product/account-management).\n\nSubject: {{nodes.node-1.data.subject}}\nMessage: {{nodes.node-1.data.body}}\nPlan: {{nodes.node-1.data.customerPlan}}",
+        "outputField": "triage"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Update Ticket with Triage Data",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "method": "PATCH",
+        "url": "https://api.zendesk.example.com/tickets/{{nodes.node-1.data.id}}",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN" },
+        "body": {
+          "priority": "{{nodes.node-2.data.triage.urgency}}",
+          "tags": ["{{nodes.node-2.data.triage.category}}", "ai-triaged"],
+          "comment": { "body": "AI Suggested Response:\n\n{{nodes.node-2.data.triage.suggested_response}}", "public": false }
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "database",
+      "category": "actions",
+      "label": "Log Triage Result",
+      "position": { "x": 600, "y": 320 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO ticket_triage_log (ticket_id, category, urgency, team, created_at) VALUES ('{{nodes.node-1.data.id}}', '{{nodes.node-2.data.triage.category}}', '{{nodes.node-2.data.triage.urgency}}', '{{nodes.node-2.data.triage.team}}', NOW())"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" }
+  ]
+}

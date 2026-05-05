@@ -1,0 +1,64 @@
+{
+  "name": "AI Social Media Content Creator",
+  "category": "AI",
+  "description": "Transform a blog post or product update into platform-specific social media content using AI. Generates Twitter, LinkedIn, and Instagram captions in one workflow.",
+  "author": "platform",
+  "tags": ["ai", "social-media", "marketing", "content", "automation"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Content Published",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Generate Social Posts",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Create social media posts for this content. Return JSON with: twitter (max 280 chars, include hashtags), linkedin (professional tone, 150-300 words), instagram (engaging caption with emojis and hashtags).\n\nTitle: {{nodes.node-1.data.title}}\nSummary: {{nodes.node-1.data.summary}}\nURL: {{nodes.node-1.data.url}}",
+        "outputField": "posts"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post to Twitter/X",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.twitter.com/2/tweets",
+        "headers": { "Authorization": "Bearer YOUR_TWITTER_TOKEN", "Content-Type": "application/json" },
+        "body": { "text": "{{nodes.node-2.data.posts.twitter}}" }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post to LinkedIn",
+      "position": { "x": 600, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "headers": { "Authorization": "Bearer YOUR_LINKEDIN_TOKEN", "Content-Type": "application/json" },
+        "body": {
+          "author": "urn:li:person:YOUR_PERSON_ID",
+          "lifecycleState": "PUBLISHED",
+          "specificContent": { "com.linkedin.ugc.ShareContent": { "shareCommentary": { "text": "{{nodes.node-2.data.posts.linkedin}}" }, "shareMediaCategory": "NONE" } },
+          "visibility": { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" }
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" }
+  ]
+}

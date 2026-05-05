@@ -1,0 +1,69 @@
+{
+  "name": "Performance Benchmark Report",
+  "category": "DevOps",
+  "description": "Run synthetic performance tests weekly and generate a report comparing P50/P95/P99 latency against baselines. Posts results to Slack and stores trends.",
+  "author": "platform",
+  "tags": ["performance", "benchmark", "latency", "devops", "report"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Sunday 11pm",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 23 * * 0", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Trigger Load Test",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.k6.io/v1/runs",
+        "headers": { "Authorization": "Bearer YOUR_K6_TOKEN", "Content-Type": "application/json" },
+        "body": { "script_id": "YOUR_SCRIPT_ID", "vus": 50, "duration": "5m" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait 6 Minutes for Results",
+      "position": { "x": 600, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 6, "unit": "minutes" } }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Test Results",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.k6.io/v1/runs/{{nodes.node-2.data.id}}",
+        "headers": { "Authorization": "Bearer YOUR_K6_TOKEN" }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Store Benchmark Results",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO perf_benchmarks (run_date, p50_ms, p95_ms, p99_ms, error_rate) VALUES (NOW(), {{nodes.node-4.data.result_data.metrics.http_req_duration.values.med}}, {{nodes.node-4.data.result_data.metrics.http_req_duration.values['p(95)']}}, {{nodes.node-4.data.result_data.metrics.http_req_duration.values['p(99)']}}, {{nodes.node-4.data.result_data.metrics.http_req_failed.values.rate}})"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

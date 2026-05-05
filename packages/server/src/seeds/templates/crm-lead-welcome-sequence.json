@@ -1,0 +1,56 @@
+{
+  "name": "Lead Welcome Email Sequence",
+  "category": "CRM",
+  "description": "Trigger a welcome email sequence when a new lead is created in your CRM. Sends an immediate welcome, waits 24 hours, then sends a follow-up with resources.",
+  "author": "platform",
+  "tags": ["crm", "lead", "email", "welcome", "drip"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Lead Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Welcome Email",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.email}}",
+        "subject": "Welcome, {{nodes.node-1.data.firstName}}!",
+        "html": "<h1>Welcome!</h1><p>Hi {{nodes.node-1.data.firstName}}, thanks for your interest. Our team will be in touch shortly.</p>"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait 24 Hours",
+      "position": { "x": 600, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 24, "unit": "hours" } }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Follow-up",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.email}}",
+        "subject": "Resources to help you get started",
+        "html": "<h2>Getting Started Resources</h2><ul><li><a href='https://docs.example.com'>Documentation</a></li><li><a href='https://example.com/demo'>Book a Demo</a></li></ul>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

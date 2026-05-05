@@ -1,0 +1,42 @@
+{
+  "name": "NPS Survey Trigger",
+  "category": "CRM",
+  "description": "Send an NPS survey email 30 days after a customer's first purchase. Collects responses via webhook and segments promoters, passives, and detractors.",
+  "author": "platform",
+  "tags": ["nps", "survey", "customer-satisfaction", "crm", "email"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "First Purchase Event",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "wait",
+      "category": "flow",
+      "label": "Wait 30 Days",
+      "position": { "x": 350, "y": 200 },
+      "config": { "mode": "duration", "duration": { "value": 30, "unit": "days" } }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Send NPS Survey",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.email}}",
+        "subject": "How likely are you to recommend us?",
+        "html": "<h2>We'd love your feedback</h2><p>On a scale of 0-10, how likely are you to recommend us to a friend?</p><p>Click your score: <a href='https://nps.example.com?score=10&id={{nodes.node-1.data.customerId}}'>10</a> | <a href='https://nps.example.com?score=9&id={{nodes.node-1.data.customerId}}'>9</a> | <a href='https://nps.example.com?score=8&id={{nodes.node-1.data.customerId}}'>8</a> | ...</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

@@ -1,5 +1,6 @@
 import type { NodeRegistry } from "./NodeRegistry.js";
 import {
+  ScheduleTriggerNode,
   HttpRequestNode,
   WebhookNode,
   WebhookTriggerNode,
@@ -19,6 +20,7 @@ import {
   SubWorkflowNode,
   WaitNode,
   DataTransformNode,
+  FunctionNode,
   SlackNode,
   TelegramNode,
   DiscordNode,
@@ -46,6 +48,7 @@ export function registerBuiltInNodes(
   nodeDeps?: NodeRegistrationDeps
 ): void {
   // ── Core nodes ──────────────────────────────────────────────────────────────
+  registry.register(new ScheduleTriggerNode());
   registry.register(new HttpRequestNode());
   registry.register(new WebhookNode());
   registry.register(new WebhookTriggerNode());
@@ -63,6 +66,7 @@ export function registerBuiltInNodes(
   registry.register(new MergeNode(nodeDeps?.branchSyncManager));
   registry.register(new WaitNode());
   registry.register(new DataTransformNode());
+  registry.register(new FunctionNode());
 
   // Sub-workflow node requires runner + workflowRepo — skip gracefully if not provided
   if (nodeDeps?.subWorkflowRunner && nodeDeps?.workflowRepo) {

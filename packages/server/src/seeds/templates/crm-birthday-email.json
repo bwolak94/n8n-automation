@@ -1,0 +1,64 @@
+{
+  "name": "Customer Birthday Email",
+  "category": "CRM",
+  "description": "Send a personalized birthday email with a discount code to customers on their birthday. Runs daily to find birthdays and send targeted messages.",
+  "author": "platform",
+  "tags": ["crm", "birthday", "email", "personalization", "retention"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 8am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 8 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Today's Birthdays",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT email, first_name, EXTRACT(YEAR FROM AGE(birth_date)) AS age FROM customers WHERE EXTRACT(MONTH FROM birth_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(DAY FROM birth_date) = EXTRACT(DAY FROM CURRENT_DATE)",
+        "maxRows": 500
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Email Each Birthday Person",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 500
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Birthday Email",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "transport": "smtp",
+        "to": "{{$item.value.email}}",
+        "subject": "Happy Birthday, {{$item.value.first_name}}! Here's a gift from us",
+        "html": "<h1>Happy Birthday! :tada:</h1><p>Hi {{$item.value.first_name}}, on your special day we want to offer you <strong>20% off</strong> your next purchase. Use code: <strong>BDAY20</strong></p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

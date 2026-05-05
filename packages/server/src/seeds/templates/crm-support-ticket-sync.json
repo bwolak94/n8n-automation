@@ -1,0 +1,66 @@
+{
+  "name": "Support Ticket to CRM Sync",
+  "category": "CRM",
+  "description": "Sync new support tickets from Zendesk or Freshdesk to your CRM as customer activities. Gives sales and CSM full visibility into customer health.",
+  "author": "platform",
+  "tags": ["crm", "support", "zendesk", "tickets", "sync"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Support Ticket",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Find CRM Contact",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.crm.example.com/contacts?email={{nodes.node-1.data.requesterEmail}}",
+        "headers": { "Authorization": "Bearer YOUR_CRM_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Contact Found?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.total}}", "operator": "greaterThan", "value": "0" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Log Activity on CRM",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.crm.example.com/contacts/{{nodes.node-2.data.contacts[0].id}}/activities",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_CRM_TOKEN" },
+        "body": {
+          "type": "support_ticket",
+          "subject": "{{nodes.node-1.data.subject}}",
+          "priority": "{{nodes.node-1.data.priority}}",
+          "ticketId": "{{nodes.node-1.data.id}}"
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" }
+  ]
+}

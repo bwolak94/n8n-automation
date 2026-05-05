@@ -1,0 +1,78 @@
+{
+  "name": "Budget Threshold Alert",
+  "category": "Finance",
+  "description": "Monitor AWS/GCP/Azure cloud spend daily. Alert the finance team and engineering leadership when spend exceeds 80% or 100% of the monthly budget.",
+  "author": "platform",
+  "tags": ["budget", "cloud-spend", "aws", "finance", "alert"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 8am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 8 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch AWS Cost Explorer",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://ce.us-east-1.amazonaws.com/",
+        "headers": { "Content-Type": "application/x-amz-json-1.1", "X-Amz-Target": "AWSInsightsIndexService.GetCostAndUsage" },
+        "body": {
+          "TimePeriod": { "Start": "{{nodes.node-1.data.monthStart}}", "End": "{{nodes.node-1.data.today}}" },
+          "Granularity": "MONTHLY",
+          "Metrics": ["UnblendedCost"]
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Calculate Budget %",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const spent = parseFloat($input.ResultsByTime?.[0]?.Total?.UnblendedCost?.Amount || 0);\nconst budget = 5000;\nconst pct = Math.round((spent / budget) * 100);\nreturn { spent, budget, percentage: pct, critical: pct >= 100, warning: pct >= 80 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Over 80%?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.warning}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Finance Team",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "finance@example.com",
+        "subject": "Budget Alert: Cloud spend at {{nodes.node-3.data.percentage}}% of monthly budget",
+        "html": "<h2>Cloud Budget Alert</h2><p>Current spend: <strong>${{nodes.node-3.data.spent}}</strong> of ${{nodes.node-3.data.budget}} budget ({{nodes.node-3.data.percentage}}%)</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

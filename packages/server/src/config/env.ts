@@ -46,4 +46,7 @@ export const env = cleanEnv(process.env, {
 
   // Credential vault — 32-byte master key as 64 hex chars
   MASTER_ENCRYPTION_KEY: str({ default: "0000000000000000000000000000000000000000000000000000000000000000" }),
+
+  // Audit log retention — number of days before old records are deleted
+  AUDIT_LOG_RETENTION_DAYS: num({ default: 365 }),
 });

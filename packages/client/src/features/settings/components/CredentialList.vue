@@ -62,6 +62,10 @@ async function handleTest(id: string): Promise<void> {
 function formatType(type: string): string {
   return type.replace(/_/g, " ");
 }
+
+function credRef(name: string): string {
+  return "{{ $credentials." + name + " }}";
+}
 </script>
 
 <template>
@@ -133,7 +137,7 @@ function formatType(type: string): string {
             data-testid="credential-row"
           >
             <td class="px-5 py-3 font-medium text-gray-800">
-              <code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{{ '{{ $credentials.' }}{{ cred.name }}{{ ' }}' }}</code>
+              <code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{{ credRef(cred.name) }}</code>
             </td>
             <td class="px-5 py-3 capitalize text-gray-600">{{ formatType(cred.type) }}</td>
             <td class="px-5 py-3 text-xs text-gray-400">

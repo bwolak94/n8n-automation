@@ -1,0 +1,62 @@
+{
+  "name": "Refund Processing Automation",
+  "category": "Finance",
+  "description": "Automatically process refund requests under $100 without manual approval. Larger refunds are routed to the finance team for review. Logs all refunds to the database.",
+  "author": "platform",
+  "tags": ["refund", "stripe", "automation", "finance", "approval"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Refund Request Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Auto-approve if < $100?",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-1.data.amount}}", "operator": "lessThan", "value": "100" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Process Stripe Refund",
+      "position": { "x": 650, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/refunds",
+        "headers": { "Authorization": "Bearer YOUR_STRIPE_SECRET", "Content-Type": "application/x-www-form-urlencoded" },
+        "body": "payment_intent={{nodes.node-1.data.paymentIntentId}}&amount={{nodes.node-1.data.amountCents}}"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Route to Finance for Review",
+      "position": { "x": 650, "y": 320 },
+      "config": {
+        "transport": "smtp",
+        "to": "finance@example.com",
+        "subject": "Refund Approval Required: ${{nodes.node-1.data.amount}} for {{nodes.node-1.data.customerEmail}}",
+        "html": "<h2>Large Refund Request</h2><p>Customer: {{nodes.node-1.data.customerEmail}}</p><p>Amount: <strong>${{nodes.node-1.data.amount}}</strong></p><p><a href='https://dashboard.example.com/refunds/{{nodes.node-1.data.requestId}}'>Review and Approve</a></p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "true" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4", "sourceHandle": "false" }
+  ]
+}

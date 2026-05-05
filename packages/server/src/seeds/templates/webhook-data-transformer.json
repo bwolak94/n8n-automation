@@ -1,0 +1,75 @@
+{
+  "name": "Webhook Data Transformer & Router",
+  "category": "Data Processing",
+  "description": "Accept events from third-party services (Stripe, GitHub, etc.), normalize them to a common schema, and route them to the appropriate internal microservice.",
+  "author": "platform",
+  "tags": ["webhook", "transform", "routing", "normalization", "microservices"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Third-party Event",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST", "secret": "YOUR_WEBHOOK_SECRET" }
+    },
+    {
+      "id": "node-2",
+      "type": "function",
+      "category": "logic",
+      "label": "Normalize Event Schema",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "code": "const raw = $input;\nconst source = raw.source || 'unknown';\nreturn { eventType: raw.type || raw.event || raw.action, source, payload: raw.data || raw.payload || raw, normalizedAt: new Date().toISOString() };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Route by Source",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "switch",
+        "rules": [
+          { "field": "{{nodes.node-2.data.source}}", "operator": "equals", "value": "stripe", "branch": "billing" },
+          { "field": "{{nodes.node-2.data.source}}", "operator": "equals", "value": "github", "branch": "devops" }
+        ],
+        "defaultBranch": "generic"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Billing Service",
+      "position": { "x": 900, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://billing-service.internal/events",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{{nodes.node-2.data}}"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "DevOps Service",
+      "position": { "x": 900, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://devops-service.internal/events",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{{nodes.node-2.data}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "billing" },
+    { "id": "e-3-5", "source": "node-3", "target": "node-5", "sourceHandle": "devops" }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "Data Validation & Cleansing",
+  "category": "Data Processing",
+  "description": "Validate incoming records from an API against business rules using a function node. Route valid records to the database and invalid ones to a quarantine table.",
+  "author": "platform",
+  "tags": ["validation", "cleansing", "data-quality", "database", "conditional"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Inbound Records",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "function",
+      "category": "logic",
+      "label": "Validate & Cleanse",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "code": "const record = $input;\nconst errors = [];\nif (!record.email || !/^[^@]+@[^@]+\\.[^@]+$/.test(record.email)) errors.push('invalid_email');\nif (!record.name || record.name.trim().length < 2) errors.push('invalid_name');\nconst cleaned = { ...record, email: record.email?.toLowerCase().trim(), name: record.name?.trim() };\nreturn { valid: errors.length === 0, record: cleaned, errors };",
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Is Valid?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.valid}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "database",
+      "category": "actions",
+      "label": "Insert Valid Record",
+      "position": { "x": 850, "y": 100 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO contacts (email, name) VALUES ('{{nodes.node-2.data.record.email}}', '{{nodes.node-2.data.record.name}}')"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Quarantine Invalid",
+      "position": { "x": 850, "y": 320 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO quarantine_records (raw_data, validation_errors, created_at) VALUES ('{{nodes.node-1.data}}', '{{nodes.node-2.data.errors}}', NOW())"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" },
+    { "id": "e-3-5", "source": "node-3", "target": "node-5", "sourceHandle": "false" }
+  ]
+}

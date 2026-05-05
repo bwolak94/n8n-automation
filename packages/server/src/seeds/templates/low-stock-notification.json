@@ -1,0 +1,63 @@
+{
+  "name": "Low Stock Notification",
+  "category": "Notifications",
+  "description": "Check inventory levels every hour and send an email alert when any product falls below the reorder threshold. Includes a database query and conditional routing.",
+  "author": "platform",
+  "tags": ["inventory", "stock", "email", "alert", "ecommerce"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Hour",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Query Low Stock Products",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, name, stock_qty, reorder_threshold FROM products WHERE stock_qty <= reorder_threshold AND active = true ORDER BY stock_qty ASC LIMIT 20",
+        "maxRows": 20
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Any low stock?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.rowCount}}", "operator": "greaterThan", "value": "0" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Inventory Manager",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "inventory@example.com",
+        "subject": "Low Stock Alert — {{nodes.node-2.data.rowCount}} products need reordering",
+        "html": "<h2>Low Stock Alert</h2><p>The following products are at or below their reorder threshold:</p><pre>{{nodes.node-2.data.rows}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "Deal Stage Change Notification",
+  "category": "CRM",
+  "description": "Notify the sales team in Slack and update a Google Sheet whenever a CRM deal moves to a new pipeline stage. Tracks win rate and deal velocity.",
+  "author": "platform",
+  "tags": ["crm", "deal", "sales", "pipeline", "slack"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Deal Stage Changed",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Notify Sales Slack",
+      "position": { "x": 400, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "text": ":bar_chart: Deal *{{nodes.node-1.data.dealName}}* moved to *{{nodes.node-1.data.newStage}}* (was: {{nodes.node-1.data.oldStage}}) — ${{nodes.node-1.data.value}}"
+        }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "Log Stage Transition",
+      "position": { "x": 400, "y": 300 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO deal_stage_log (deal_id, old_stage, new_stage, deal_value, changed_at) VALUES ('{{nodes.node-1.data.dealId}}', '{{nodes.node-1.data.oldStage}}', '{{nodes.node-1.data.newStage}}', {{nodes.node-1.data.value}}, NOW())"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "Churned Customer Alert",
+  "category": "CRM",
+  "description": "Detect customers who have churned (cancelled subscription or become inactive) and trigger a win-back email sequence plus a Slack alert to the CSM team.",
+  "author": "platform",
+  "tags": ["crm", "churn", "retention", "email", "win-back"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 10am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 10 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Recently Churned",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, email, name, cancelled_at FROM customers WHERE status = 'cancelled' AND cancelled_at >= NOW() - INTERVAL '24 hours'",
+        "maxRows": 100
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Process Each Churned Customer",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 100
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Win-back Email",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "transport": "smtp",
+        "to": "{{$item.value.email}}",
+        "subject": "We miss you, {{$item.value.name}}",
+        "html": "<h2>We'd love to have you back</h2><p>Hi {{$item.value.name}}, we noticed you recently left. Reply to this email and we'll offer you 30% off your next month.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

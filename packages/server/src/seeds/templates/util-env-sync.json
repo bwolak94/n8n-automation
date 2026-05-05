@@ -1,0 +1,59 @@
+{
+  "name": "Environment Config Sync",
+  "category": "Utilities",
+  "description": "Sync environment variables from AWS Parameter Store or HashiCorp Vault to your deployed services. Ensures config consistency across all environments.",
+  "author": "platform",
+  "tags": ["environment", "config", "secrets", "aws", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Config Update Trigger",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch from Parameter Store",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://ssm.us-east-1.amazonaws.com/",
+        "headers": { "Content-Type": "application/x-amz-json-1.1", "X-Amz-Target": "AmazonSSM.GetParametersByPath" },
+        "body": { "Path": "/app/production", "WithDecryption": true, "Recursive": true }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Format for Services",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const params = $input.Parameters || [];\nreturn { config: params.reduce((acc, p) => { acc[p.Name.split('/').pop()] = p.Value; return acc; }, {}) };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Push to Services",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://config-service.internal/reload",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_INTERNAL_TOKEN" },
+        "body": { "config": "{{nodes.node-3.data.config}}", "environment": "production" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

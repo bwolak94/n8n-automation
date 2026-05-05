@@ -1,0 +1,78 @@
+{
+  "name": "Bulk Contact Enrichment",
+  "category": "CRM",
+  "description": "Run a nightly batch job to enrich all CRM contacts missing company data. Queries an enrichment API and updates records in place.",
+  "author": "platform",
+  "tags": ["crm", "enrichment", "contacts", "batch", "schedule"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Nightly at 4am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 4 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Unenriched Contacts",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT id, email FROM contacts WHERE company IS NULL AND email IS NOT NULL LIMIT 100",
+        "maxRows": 100
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Enrich Each Contact",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 100
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Call Enrichment API",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "method": "GET",
+        "url": "https://api.enrichment.example.com/lookup?email={{$item.value.email}}",
+        "headers": { "Authorization": "Bearer YOUR_KEY" }
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "database",
+      "category": "actions",
+      "label": "Update Contact",
+      "position": { "x": 1100, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "UPDATE contacts SET company = '{{nodes.node-4.data.company}}', job_title = '{{nodes.node-4.data.title}}' WHERE id = '{{$item.value.id}}'"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

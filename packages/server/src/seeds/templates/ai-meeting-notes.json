@@ -1,0 +1,61 @@
+{
+  "name": "AI Meeting Notes Processor",
+  "category": "AI",
+  "description": "Process meeting transcripts with AI to extract action items, decisions, and summaries. Sends a formatted recap to all attendees and logs action items to your task tracker.",
+  "author": "platform",
+  "tags": ["ai", "meetings", "notes", "action-items", "productivity"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Meeting Transcript Ready",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Extract Key Points",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Process this meeting transcript and return JSON with: summary (2-3 sentences), action_items (array of {task, owner, due_date}), decisions (array of strings), and key_topics (array of strings).\n\nMeeting: {{nodes.node-1.data.title}}\nDate: {{nodes.node-1.data.date}}\nTranscript: {{nodes.node-1.data.transcript}}",
+        "outputField": "notes"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Recap to Attendees",
+      "position": { "x": 600, "y": 100 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.attendees}}",
+        "subject": "Meeting Recap: {{nodes.node-1.data.title}}",
+        "html": "<h2>Meeting Recap</h2><h3>Summary</h3><p>{{nodes.node-2.data.notes.summary}}</p><h3>Action Items</h3><pre>{{nodes.node-2.data.notes.action_items}}</pre><h3>Decisions</h3><pre>{{nodes.node-2.data.notes.decisions}}</pre>"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create Tasks in Linear",
+      "position": { "x": 600, "y": 320 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "headers": { "Authorization": "Bearer YOUR_LINEAR_TOKEN", "Content-Type": "application/json" },
+        "body": {
+          "query": "mutation { issueCreate(input: { title: \"Action items from {{nodes.node-1.data.title}}\", description: \"{{nodes.node-2.data.notes.action_items}}\" }) { issue { id } } }"
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" }
+  ]
+}

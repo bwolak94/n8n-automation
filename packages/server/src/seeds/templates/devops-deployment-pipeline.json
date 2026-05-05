@@ -1,0 +1,63 @@
+{
+  "name": "CI/CD Pipeline Status Notification",
+  "category": "DevOps",
+  "description": "Receive pipeline status webhooks from GitHub Actions or GitLab CI and send rich notifications to Slack with branch, commit, and duration details.",
+  "author": "platform",
+  "tags": ["ci-cd", "github-actions", "slack", "deployment", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Pipeline Status Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Pass or Fail?",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "mode": "switch",
+        "rules": [
+          { "field": "{{nodes.node-1.data.status}}", "operator": "equals", "value": "success", "branch": "success" },
+          { "field": "{{nodes.node-1.data.status}}", "operator": "equals", "value": "failure", "branch": "failure" }
+        ],
+        "defaultBranch": "other"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Slack: Build Passed",
+      "position": { "x": 650, "y": 100 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": ":white_check_mark: Build *passed* on `{{nodes.node-1.data.branch}}` by {{nodes.node-1.data.author}} ({{nodes.node-1.data.duration}}s)" }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Slack: Build Failed",
+      "position": { "x": 650, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": ":x: Build *failed* on `{{nodes.node-1.data.branch}}` — <{{nodes.node-1.data.runUrl}}|View logs>" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3", "sourceHandle": "success" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4", "sourceHandle": "failure" }
+  ]
+}

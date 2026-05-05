@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { z } from "zod";
 import { CredentialType, CredentialCreateSchema } from "@automation-hub/shared";
 import type { CredentialCreate, CredentialResponse } from "@automation-hub/shared";
 

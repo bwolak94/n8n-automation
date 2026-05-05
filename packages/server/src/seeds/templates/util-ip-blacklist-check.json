@@ -1,0 +1,73 @@
+{
+  "name": "IP Blacklist Checker",
+  "category": "Utilities",
+  "description": "Check if your server IP addresses appear on major spam or threat blacklists. Runs daily and alerts if any IP is flagged, protecting your email deliverability and reputation.",
+  "author": "platform",
+  "tags": ["security", "blacklist", "ip", "email-deliverability", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 7am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 7 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Check IP Blacklist API",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.hetrixtools.com/v2/YOUR_API_TOKEN/blacklist-check/server/YOUR_SERVER_ID/",
+        "headers": {}
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Find Blacklisted IPs",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const results = $input.blacklists_data || [];\nconst blacklisted = results.filter(b => b.listed);\nreturn { blacklisted, count: blacklisted.length, isClean: blacklisted.length === 0 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Any Blacklisted?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.isClean}}", "operator": "equals", "value": "false" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Security Team",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "security@example.com",
+        "subject": "IP Blacklist Alert: {{nodes.node-3.data.count}} IPs flagged",
+        "html": "<h2>IP Blacklist Alert</h2><p>{{nodes.node-3.data.count}} of your IPs are on blacklists. This may affect email deliverability and reputation.</p><pre>{{nodes.node-3.data.blacklisted}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

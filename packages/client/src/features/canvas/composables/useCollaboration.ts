@@ -52,22 +52,22 @@ export function useCollaboration(workflowId: string) {
   function applyRemoteOp(op: CanvasOp): void {
     switch (op.type) {
       case "move_node": {
-        const { nodeId, position } = op as { nodeId: string; position: { x: number; y: number } };
+        const { nodeId, position } = op as unknown as { nodeId: string; position: { x: number; y: number } };
         canvasStore.updateNodePosition(nodeId, position);
         break;
       }
       case "update_config": {
-        const { nodeId, config } = op as { nodeId: string; config: Record<string, unknown> };
+        const { nodeId, config } = op as unknown as { nodeId: string; config: Record<string, unknown> };
         canvasStore.updateNodeConfig(nodeId, config);
         break;
       }
       case "delete_node": {
-        const { nodeId } = op as { nodeId: string };
+        const { nodeId } = op as unknown as { nodeId: string };
         canvasStore.removeNode(nodeId);
         break;
       }
       case "add_edge": {
-        const { edgeId, source, target } = op as {
+        const { edgeId, source, target } = op as unknown as {
           edgeId: string;
           source: string;
           target: string;
@@ -76,12 +76,12 @@ export function useCollaboration(workflowId: string) {
         break;
       }
       case "delete_edge": {
-        const { edgeId } = op as { edgeId: string };
+        const { edgeId } = op as unknown as { edgeId: string };
         canvasStore.removeEdge(edgeId);
         break;
       }
       case "add_node": {
-        const { node } = op as {
+        const { node } = op as unknown as {
           node: { id: string; type: string; position: { x: number; y: number }; config: Record<string, unknown> };
         };
         canvasStore.addNode({
@@ -134,7 +134,6 @@ export function useCollaboration(workflowId: string) {
     socket.on("op:applied", (payload: OpAppliedPayload) => {
       serverVersion.value = payload.version;
       // Remote ops: apply to canvas. Our own ops were applied optimistically.
-      const localUserId = getStoredToken(); // crude — ideally compare socket.id
       if (payload.userId !== socket?.id) {
         applyRemoteOp(payload.op);
       }

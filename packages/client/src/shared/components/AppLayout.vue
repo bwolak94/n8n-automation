@@ -10,6 +10,8 @@ const authStore = useAuthStore();
 const navItems = [
   { label: "Dashboard", icon: "📊", path: "/" },
   { label: "Workflows", icon: "⚡", path: "/workflows" },
+  { label: "Templates", icon: "📋", path: "/templates" },
+  { label: "Credentials", icon: "🔑", path: "/credentials" },
   { label: "Marketplace", icon: "🛒", path: "/marketplace" },
   { label: "Dead Letter Queue", icon: "💀", path: "/dlq" },
   { label: "Settings", icon: "⚙️", path: "/settings" },

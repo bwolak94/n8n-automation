@@ -1,0 +1,61 @@
+{
+  "name": "Invoice Auto-Send",
+  "category": "Finance",
+  "description": "Automatically generate and send PDF invoices to customers when a new invoice is created in your billing system. Stores a log of sent invoices in the database.",
+  "author": "platform",
+  "tags": ["invoice", "billing", "email", "finance", "automation"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Invoice Created Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Generate PDF via API",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.pdfmonkey.io/api/v1/documents",
+        "headers": { "Authorization": "Bearer YOUR_PDFMONKEY_TOKEN", "Content-Type": "application/json" },
+        "body": { "document": { "template_id": "YOUR_TEMPLATE_ID", "payload": "{{nodes.node-1.data}}" } }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Email Invoice to Customer",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "{{nodes.node-1.data.customerEmail}}",
+        "subject": "Invoice #{{nodes.node-1.data.invoiceNumber}} from Example Corp",
+        "html": "<h2>Your Invoice</h2><p>Please find your invoice #{{nodes.node-1.data.invoiceNumber}} for ${{nodes.node-1.data.amount}} due {{nodes.node-1.data.dueDate}}.</p><p><a href='{{nodes.node-2.data.document.download_url}}'>Download PDF</a></p>"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "database",
+      "category": "actions",
+      "label": "Log Invoice Sent",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO invoice_log (invoice_number, customer_email, amount, sent_at) VALUES ('{{nodes.node-1.data.invoiceNumber}}', '{{nodes.node-1.data.customerEmail}}', {{nodes.node-1.data.amount}}, NOW())"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "AI Blog Content Generation",
+  "category": "AI",
+  "description": "Generate SEO-optimized blog post drafts from a topic keyword using Claude AI. Creates title, outline, and full draft, then saves to CMS as a draft for human review.",
+  "author": "platform",
+  "tags": ["ai", "content", "blog", "seo", "copywriting"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Content Brief Received",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Generate Blog Outline",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Create an SEO-optimized blog post outline for the topic: '{{nodes.node-1.data.topic}}'. Target audience: {{nodes.node-1.data.audience}}. Include: title, meta description, H2 sections with bullet points.",
+        "outputField": "outline"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Write Full Draft",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "prompt": "Write a complete 1000-word blog post based on this outline. Use an engaging, professional tone. Include a call-to-action at the end.\n\nOutline:\n{{nodes.node-2.data.outline}}",
+        "outputField": "draft"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Save to CMS as Draft",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.contentful.example.com/entries",
+        "headers": { "Authorization": "Bearer YOUR_CMS_TOKEN", "Content-Type": "application/json" },
+        "body": {
+          "fields": {
+            "title": "{{nodes.node-1.data.topic}}",
+            "body": "{{nodes.node-3.data.draft}}",
+            "status": "draft",
+            "aiGenerated": true
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

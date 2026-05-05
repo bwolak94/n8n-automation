@@ -1,0 +1,80 @@
+{
+  "name": "AI Lead Scoring",
+  "category": "AI",
+  "description": "Score incoming leads using AI by analyzing company size, industry, job title, and behavior signals. Helps sales teams focus on the highest-value opportunities.",
+  "author": "platform",
+  "tags": ["ai", "lead-scoring", "sales", "crm", "prioritization"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "New Lead Created",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Score Lead with AI",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "prompt": "Score this lead for a B2B SaaS product. Return JSON: { score: 0-100, tier: 'hot'|'warm'|'cold', reasoning: string, recommended_action: string }.\n\nLead info:\n- Company: {{nodes.node-1.data.company}}\n- Title: {{nodes.node-1.data.jobTitle}}\n- Industry: {{nodes.node-1.data.industry}}\n- Company Size: {{nodes.node-1.data.employeeCount}}\n- Source: {{nodes.node-1.data.source}}\n- Visited pricing page: {{nodes.node-1.data.visitedPricing}}",
+        "outputField": "scoring"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Update CRM with Score",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "method": "PATCH",
+        "url": "https://api.crm.example.com/leads/{{nodes.node-1.data.id}}",
+        "headers": { "Content-Type": "application/json", "Authorization": "Bearer YOUR_CRM_TOKEN" },
+        "body": {
+          "aiScore": "{{nodes.node-2.data.scoring.score}}",
+          "tier": "{{nodes.node-2.data.scoring.tier}}",
+          "aiReasoning": "{{nodes.node-2.data.scoring.reasoning}}"
+        }
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Hot Lead?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.scoring.tier}}", "operator": "equals", "value": "hot" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Alert Sales in Slack",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "text": ":fire: Hot lead! *{{nodes.node-1.data.name}}* from {{nodes.node-1.data.company}} — Score: {{nodes.node-2.data.scoring.score}}/100\n{{nodes.node-2.data.scoring.recommended_action}}"
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

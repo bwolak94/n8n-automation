@@ -1,0 +1,66 @@
+{
+  "name": "Dependency Update Checker",
+  "category": "DevOps",
+  "description": "Weekly check for outdated npm or pip dependencies using an API. Creates a GitHub issue automatically when high-severity vulnerabilities are detected.",
+  "author": "platform",
+  "tags": ["dependencies", "security", "npm", "github", "devops"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Monday 9am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 9 * * 1", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Snyk Vulnerability Scan",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://snyk.io/api/v1/test/npm",
+        "headers": { "Authorization": "token YOUR_SNYK_TOKEN", "Content-Type": "application/json" },
+        "body": { "encoding": "plain", "packageManager": "npm" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "High Severity Issues?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.vulnerabilities.high}}", "operator": "greaterThan", "value": "0" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Create GitHub Issue",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/YOUR_ORG/YOUR_REPO/issues",
+        "headers": { "Authorization": "Bearer YOUR_GITHUB_TOKEN", "Content-Type": "application/json" },
+        "body": {
+          "title": "Security: {{nodes.node-2.data.vulnerabilities.high}} high-severity vulnerabilities detected",
+          "body": "Snyk detected high-severity vulnerabilities. Please update dependencies immediately.\n\n```\n{{nodes.node-2.data.summary}}\n```",
+          "labels": ["security", "dependencies"]
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" }
+  ]
+}

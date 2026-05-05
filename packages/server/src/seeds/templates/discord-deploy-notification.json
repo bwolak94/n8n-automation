@@ -1,0 +1,45 @@
+{
+  "name": "Discord Deployment Notification",
+  "category": "Notifications",
+  "description": "Post a rich embed message to a Discord channel whenever a deployment webhook fires. Includes commit author, branch, and status badge.",
+  "author": "platform",
+  "tags": ["discord", "deploy", "notification", "webhook", "ci-cd"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "webhookTrigger",
+      "category": "triggers",
+      "label": "Deployment Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": { "method": "POST" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Post to Discord",
+      "position": { "x": 400, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "embeds": [
+            {
+              "title": "Deployment {{nodes.node-1.data.status}}",
+              "color": 3066993,
+              "fields": [
+                { "name": "Branch", "value": "{{nodes.node-1.data.branch}}", "inline": true },
+                { "name": "Author", "value": "{{nodes.node-1.data.author}}", "inline": true },
+                { "name": "Commit", "value": "{{nodes.node-1.data.commit_sha}}", "inline": false }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" }
+  ]
+}

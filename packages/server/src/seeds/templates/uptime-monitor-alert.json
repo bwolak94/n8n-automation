@@ -1,0 +1,60 @@
+{
+  "name": "Uptime Monitor Alert",
+  "category": "Notifications",
+  "description": "Ping your service endpoints every minute and send an immediate alert if any returns a non-2xx status code. Includes auto-resolution notification.",
+  "author": "platform",
+  "tags": ["uptime", "monitoring", "alert", "http", "reliability"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Minute",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "* * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Health Check",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://your-service.example.com/health"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Is Down?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.statusCode}}", "operator": "greaterThanOrEqual", "value": "400" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Down Alert",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "ops@example.com",
+        "subject": "DOWN: your-service.example.com returned {{nodes.node-2.data.statusCode}}",
+        "html": "<h2>Service Outage Detected</h2><p>Endpoint: https://your-service.example.com/health</p><p>Status: <strong>{{nodes.node-2.data.statusCode}}</strong></p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" }
+  ]
+}

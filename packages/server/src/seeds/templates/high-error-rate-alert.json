@@ -1,0 +1,75 @@
+{
+  "name": "High Error Rate Alert",
+  "category": "Notifications",
+  "description": "Poll your metrics API every 5 minutes and alert via email and Slack when error rate exceeds a threshold. Prevents alert storms with conditional logic.",
+  "author": "platform",
+  "tags": ["monitoring", "error-rate", "alert", "slack", "email"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 5 minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/5 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch Error Rate",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/metrics/error-rate",
+        "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Error Rate > 5%?",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-2.data.errorRate}}", "operator": "greaterThan", "value": "5" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Engineering Team",
+      "position": { "x": 850, "y": 100 },
+      "config": {
+        "transport": "smtp",
+        "to": "engineering@example.com",
+        "subject": "ALERT: Error rate at {{nodes.node-2.data.errorRate}}%",
+        "html": "<h2>High Error Rate Detected</h2><p>Current error rate: <strong>{{nodes.node-2.data.errorRate}}%</strong></p><p>Please investigate immediately.</p>"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Slack Alert",
+      "position": { "x": 850, "y": 300 },
+      "config": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "text": ":red_circle: Error rate is {{nodes.node-2.data.errorRate}}% — investigate now!" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4", "sourceHandle": "true" },
+    { "id": "e-3-5", "source": "node-3", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

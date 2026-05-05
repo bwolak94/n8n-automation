@@ -1,0 +1,60 @@
+{
+  "name": "Weekly Service Uptime Report",
+  "category": "Utilities",
+  "description": "Generate a weekly uptime report from your monitoring data. Calculates SLA compliance per service and emails a formatted report to engineering leadership.",
+  "author": "platform",
+  "tags": ["uptime", "sla", "report", "monitoring", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Monday at 8am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 8 * * 1", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Calculate Uptime Per Service",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT service, ROUND(100.0 * SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END) / COUNT(*), 3) AS uptime_pct, COUNT(CASE WHEN status = 'down' THEN 1 END) AS outages, COALESCE(SUM(CASE WHEN status = 'down' THEN duration_seconds ELSE 0 END) / 60, 0) AS total_downtime_minutes FROM uptime_checks WHERE checked_at >= NOW() - INTERVAL '7 days' GROUP BY service ORDER BY uptime_pct ASC",
+        "maxRows": 50
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Flag SLA Breaches",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const rows = $input.rows || [];\nconst breaches = rows.filter(r => r.uptime_pct < 99.9);\nreturn { rows, breaches, hasBreaches: breaches.length > 0 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Weekly Uptime Report",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "engineering@example.com",
+        "subject": "Weekly Uptime Report{{nodes.node-3.data.hasBreaches ? ' ⚠️ SLA Breaches' : ''}}",
+        "html": "<h2>Weekly Service Uptime</h2><pre>{{nodes.node-3.data.rows}}</pre>{{nodes.node-3.data.hasBreaches ? '<h3>SLA Breaches</h3><pre>' + nodes.node-3.data.breaches + '</pre>' : ''}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

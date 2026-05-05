@@ -8,3 +8,5 @@ export * from "./members.js";
 export * from "./nodes.js";
 export * from "./queue.js";
 export * from "./workflows.js";
+// templates.ts is imported directly by features — barrel re-export conflicts
+// with integrations.ts (ListTemplatesQuery, TemplateNode, TemplateEdge names).

@@ -1,0 +1,77 @@
+{
+  "name": "AI Product Recommendation Engine",
+  "category": "AI",
+  "description": "Generate personalized product recommendations for customers based on purchase history and browsing behavior using AI. Sends recommendations via email.",
+  "author": "platform",
+  "tags": ["ai", "recommendations", "ecommerce", "personalization", "email"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Weekly on Thursdays",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 10 * * 4", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch Customers + Purchase History",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT c.email, c.first_name, array_agg(p.name) AS purchased_products, array_agg(p.category) AS categories FROM customers c JOIN orders o ON o.customer_id = c.id JOIN products p ON p.id = ANY(o.product_ids) WHERE c.marketing_opt_in = true GROUP BY c.email, c.first_name LIMIT 100",
+        "maxRows": 100
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Personalize for Each Customer",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 100
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "aiTransform",
+      "category": "ai",
+      "label": "Generate Recommendations",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "prompt": "Based on this customer's purchase history, suggest 3 products they might like. Return JSON: { recommendations: [{name, reason, price_range}] }.\n\nCustomer: {{$item.value.first_name}}\nPrevious purchases: {{$item.value.purchased_products}}\nCategories: {{$item.value.categories}}",
+        "outputField": "recs"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Recommendations Email",
+      "position": { "x": 1100, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "transport": "smtp",
+        "to": "{{$item.value.email}}",
+        "subject": "{{$item.value.first_name}}, we picked these just for you",
+        "html": "<h2>Recommended for You</h2><pre>{{nodes.node-4.data.recs.recommendations}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5" }
+  ]
+}

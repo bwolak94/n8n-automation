@@ -1,0 +1,58 @@
+{
+  "name": "API to Google Sheets Sync",
+  "category": "Data Processing",
+  "description": "Pull data from any REST API on a schedule and append rows to a Google Sheets spreadsheet. Useful for non-technical stakeholders who prefer spreadsheets.",
+  "author": "platform",
+  "tags": ["google-sheets", "api", "sync", "schedule", "spreadsheet"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every 15 minutes",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "*/15 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Fetch API Data",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/metrics",
+        "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Format Rows",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const d = $input;\nreturn { values: [[new Date().toISOString(), d.activeUsers, d.revenue, d.conversions]] };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "httpRequest",
+      "category": "actions",
+      "label": "Append to Sheets",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SPREADSHEET_ID/values/Sheet1!A1:D1:append?valueInputOption=RAW",
+        "headers": { "Authorization": "Bearer YOUR_OAUTH_TOKEN", "Content-Type": "application/json" },
+        "body": { "values": "{{nodes.node-3.data.values}}" }
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}
