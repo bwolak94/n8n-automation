@@ -50,13 +50,10 @@ export class NodeInstaller {
     }
 
     // Built-in packages ship with the server — skip disk/sandbox loading.
-    // The nodeType is already registered in the global NodeRegistry.
+    // The nodeType is already registered globally in the base NodeRegistry;
+    // TenantNodeRegistry only holds dynamically installed nodes, so we must
+    // NOT check tenantRegistry.has() here.
     if (pkg.isBuiltIn) {
-      if (!this.tenantRegistry.has(pkg.nodeType)) {
-        throw new ValidationError(
-          `Built-in package '${pkg.name}' has no registered node type '${pkg.nodeType}'. Contact support.`
-        );
-      }
       const record = await this.repository.installNode(tenantId, packageId, pkg.nodeType, pkg.version);
       await this.repository.incrementDownloads(packageId);
       return record;

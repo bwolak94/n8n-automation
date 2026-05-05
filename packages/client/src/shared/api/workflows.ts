@@ -16,10 +16,15 @@ export interface WorkflowCreateData {
 
 export async function fetchWorkflows(
   limit = 20,
-  offset = 0
+  offset = 0,
+  search?: string,
+  status?: string
 ): Promise<PaginatedResponse<WorkflowSummary>> {
+  const params: Record<string, string | number> = { limit, offset };
+  if (search) params["search"] = search;
+  if (status) params["status"] = status;
   return apiClient
-    .get("workflows", { searchParams: { limit, offset } })
+    .get("workflows", { searchParams: params })
     .json<PaginatedResponse<WorkflowSummary>>();
 }
 

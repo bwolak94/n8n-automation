@@ -77,6 +77,7 @@ import { createAuditRouter } from "./modules/audit/audit.router.js";
 import cron from "node-cron";
 import type { IEnqueueable } from "./modules/workflows/WorkflowService.js";
 import type { IDLQRepository } from "./modules/queue/IDLQRepository.js";
+import type { IPrometheusMetrics } from "./observability/PrometheusMetrics.js";
 
 // ─── Injectable dependencies ──────────────────────────────────────────────────
 
@@ -86,6 +87,7 @@ export interface AppDeps {
   dlqRepository?: IDLQRepository | null;
   tenantNodeRegistry?: TenantNodeRegistry;
   marketplaceService?: MarketplaceService;
+  prometheusMetrics?: IPrometheusMetrics;
 }
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
@@ -104,6 +106,15 @@ export function createApp(deps: AppDeps = {}): Express {
 
   // OpenAPI / Swagger UI — public, before auth middleware
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
+  // Prometheus metrics — public, scraped by Prometheus every 15s
+  if (deps.prometheusMetrics) {
+    const metrics = deps.prometheusMetrics;
+    app.get("/metrics", async (_req, res) => {
+      res.set("Content-Type", metrics.getContentType());
+      res.send(await metrics.getMetricsString());
+    });
+  }
 
   // Health check — public, before auth middleware
   app.get("/health", async (_req, res) => {

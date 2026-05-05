@@ -1,3 +1,4 @@
+import { computed, type MaybeRefOrGetter, toValue } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   fetchWorkflows,
@@ -10,10 +11,23 @@ import {
 
 export const WORKFLOWS_KEY = "workflows";
 
-export function useWorkflowsQuery(limit = 20, offset = 0) {
+interface WorkflowQueryParams {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  status?: string;
+}
+
+export function useWorkflowsQuery(
+  params: MaybeRefOrGetter<WorkflowQueryParams> = {}
+) {
+  const resolvedParams = computed(() => toValue(params));
   return useQuery({
-    queryKey: [WORKFLOWS_KEY, { limit, offset }],
-    queryFn: () => fetchWorkflows(limit, offset),
+    queryKey: computed(() => [WORKFLOWS_KEY, resolvedParams.value]),
+    queryFn: () => {
+      const p = resolvedParams.value;
+      return fetchWorkflows(p.limit ?? 20, p.offset ?? 0, p.search, p.status);
+    },
   });
 }
 

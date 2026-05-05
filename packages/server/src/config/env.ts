@@ -49,4 +49,7 @@ export const env = cleanEnv(process.env, {
 
   // Audit log retention — number of days before old records are deleted
   AUDIT_LOG_RETENTION_DAYS: num({ default: 365 }),
+
+  // Observability — Loki log shipping (empty string = disabled)
+  LOKI_URL: str({ default: "" }),
 });

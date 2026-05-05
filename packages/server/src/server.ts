@@ -24,6 +24,9 @@ import { OpLogRepository } from "./modules/collaboration/OpLogRepository.js";
 import { CollaborationGateway } from "./modules/collaboration/CollaborationGateway.js";
 import { DebugRunner } from "./engine/DebugRunner.js";
 import { DebugGateway } from "./modules/debug/DebugGateway.js";
+import { LokiLogger, NoopLokiLogger } from "./observability/LokiLogger.js";
+import { PrometheusMetrics } from "./observability/PrometheusMetrics.js";
+import { ObservabilityService } from "./observability/ObservabilityService.js";
 
 async function main(): Promise<void> {
   await connectDatabases();
@@ -32,9 +35,14 @@ async function main(): Promise<void> {
   const workflowQueue = createWorkflowQueue(bullmqRedis);
   const dlqRepository = createBullMQDLQRepository(bullmqRedis, workflowQueue);
 
+  // ── Observability ────────────────────────────────────────────────────────────
+  const lokiLogger = env.LOKI_URL ? new LokiLogger(env.LOKI_URL) : new NoopLokiLogger();
+  const prometheusMetrics = new PrometheusMetrics();
+
   // ── Execution engine ────────────────────────────────────────────────────────
   const dlqQueue = createDLQQueue(bullmqRedis);
   const eventBus = new EventBus();
+  new ObservabilityService(eventBus, lokiLogger, prometheusMetrics);
   const evaluator = new ExpressionEvaluator();
   const retryManager = new RetryManager(dlqQueue);
 
@@ -59,7 +67,7 @@ async function main(): Promise<void> {
   );
 
   // ── Express app ─────────────────────────────────────────────────────────────
-  const app = createApp({ workflowQueue, dlqRepository, nodeRegistry: tenantNodeRegistry });
+  const app = createApp({ workflowQueue, dlqRepository, nodeRegistry: tenantNodeRegistry, prometheusMetrics });
 
   // ── HTTP server (shared with Socket.io) ─────────────────────────────────────
   const httpServer = createServer(app);

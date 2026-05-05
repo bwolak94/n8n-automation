@@ -6,6 +6,7 @@ import { useAuthStore } from "../../stores/authStore.js";
 const route = useRoute();
 const authStore = useAuthStore();
 
+const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL ?? "http://localhost:3001";
 
 const navItems = [
   { label: "Dashboard", icon: "📊", path: "/" },
@@ -48,6 +49,20 @@ function isActive(path: string): boolean {
           <span aria-hidden="true">{{ item.icon }}</span>
           {{ item.label }}
         </router-link>
+
+        <!-- Grafana — external link, opens in new tab -->
+        <a
+          :href="GRAFANA_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          data-testid="nav-grafana"
+          aria-label="Open Grafana dashboards (opens in new tab)"
+        >
+          <span aria-hidden="true">📈</span>
+          Grafana
+          <span class="ml-auto text-gray-300 text-xs" aria-hidden="true">↗</span>
+        </a>
       </nav>
 
       <!-- User + logout -->
