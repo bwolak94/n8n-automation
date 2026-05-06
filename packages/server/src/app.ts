@@ -74,10 +74,15 @@ import { AuditLogRepository } from "./modules/audit/AuditLogRepository.js";
 import { AuditLogService } from "./modules/audit/AuditLogService.js";
 import { AuditLogController } from "./modules/audit/AuditLogController.js";
 import { createAuditRouter } from "./modules/audit/audit.router.js";
+import { ApprovalRepository } from "./modules/approvals/ApprovalRepository.js";
+import { ApprovalService } from "./modules/approvals/ApprovalService.js";
+import { ApprovalController } from "./modules/approvals/ApprovalController.js";
+import { createApprovalRouters, createExecutionApprovalsRouter } from "./modules/approvals/approval.router.js";
 import cron from "node-cron";
 import type { IEnqueueable } from "./modules/workflows/WorkflowService.js";
 import type { IDLQRepository } from "./modules/queue/IDLQRepository.js";
 import type { IPrometheusMetrics } from "./observability/PrometheusMetrics.js";
+import type { IResumableQueue } from "./engine/WorkflowRunner.js";
 
 // ─── Injectable dependencies ──────────────────────────────────────────────────
 
@@ -88,6 +93,8 @@ export interface AppDeps {
   tenantNodeRegistry?: TenantNodeRegistry;
   marketplaceService?: MarketplaceService;
   prometheusMetrics?: IPrometheusMetrics;
+  approvalService?: ApprovalService;
+  resumableQueue?: IResumableQueue | null;
 }
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
@@ -160,6 +167,17 @@ export function createApp(deps: AppDeps = {}): Express {
   const tenantNodeRegistry = deps.tenantNodeRegistry ?? new TenantNodeRegistry();
   const nodeRegistry = deps.nodeRegistry ?? tenantNodeRegistry;
 
+  // ── Approvals (public action endpoints — JWT in query param, no session needed) ─
+  let approvalService = deps.approvalService;
+  if (!approvalService) {
+    const approvalRepo = new ApprovalRepository(pgPool);
+    approvalService = new ApprovalService(approvalRepo, deps.resumableQueue ?? undefined);
+  }
+  const approvalController = new ApprovalController(approvalService);
+  const { publicRouter: approvalPublicRouter, privateRouter: approvalPrivateRouter } =
+    createApprovalRouters(approvalController);
+  app.use("/api/approvals", approvalPublicRouter);
+
   // Register all built-in nodes into the registry (idempotent when deps.nodeRegistry provided)
   if (!deps.nodeRegistry) {
     const aiProvider = env.ANTHROPIC_API_KEY ? new ClaudeProvider(env.ANTHROPIC_API_KEY) : undefined;
@@ -173,6 +191,7 @@ export function createApp(deps: AppDeps = {}): Express {
       credentialVault: nodeCredService,
       dbClientFactory: nodeDbFactory,
       branchSyncManager,
+      approvalCreator: approvalService,
     });
   }
 
@@ -263,6 +282,10 @@ export function createApp(deps: AppDeps = {}): Express {
   const templateService    = new TemplateService(templateRepo, workflowService);
   const templateController = new TemplateController(templateService);
   app.use("/api/templates", createTemplateRouter(templateController));
+
+  // ── Approvals (authenticated read endpoints) ─────────────────────────────────
+  app.use("/api/approvals", approvalPrivateRouter);
+  app.use("/api/executions/:id/approvals", createExecutionApprovalsRouter(approvalController));
 
   // ── Audit Logs ───────────────────────────────────────────────────────────────
   const auditController = new AuditLogController(auditService);

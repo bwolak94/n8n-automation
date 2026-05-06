@@ -21,6 +21,9 @@ import {
   WaitNode,
   DataTransformNode,
   FunctionNode,
+  AIPromptNode,
+  FileStorageNode,
+  ApprovalNode,
   SlackNode,
   TelegramNode,
   DiscordNode,
@@ -33,6 +36,7 @@ import type { IDbClientFactory } from "./implementations/db/DatabaseClientFactor
 import type { IAiProvider } from "./contracts/IAiProvider.js";
 import type { IWorkflowRepository } from "../engine/types.js";
 import type { IBranchSyncManager } from "../engine/BranchSyncManager.js";
+import type { IApprovalCreator } from "../modules/approvals/ApprovalService.js";
 
 export interface NodeRegistrationDeps {
   credentialVault?: ICredentialVault;
@@ -40,6 +44,7 @@ export interface NodeRegistrationDeps {
   subWorkflowRunner?: ISubWorkflowRunner;
   workflowRepo?: IWorkflowRepository;
   branchSyncManager?: IBranchSyncManager;
+  approvalCreator?: IApprovalCreator;
 }
 
 export function registerBuiltInNodes(
@@ -67,6 +72,9 @@ export function registerBuiltInNodes(
   registry.register(new WaitNode());
   registry.register(new DataTransformNode());
   registry.register(new FunctionNode());
+  registry.register(new AIPromptNode(nodeDeps?.credentialVault));
+  registry.register(new FileStorageNode(nodeDeps?.credentialVault));
+  registry.register(new ApprovalNode(nodeDeps?.approvalCreator));
 
   // Sub-workflow node requires runner + workflowRepo — skip gracefully if not provided
   if (nodeDeps?.subWorkflowRunner && nodeDeps?.workflowRepo) {

@@ -18,6 +18,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
     "@automation-hub/shared": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1043.0",
+    "@aws-sdk/s3-request-presigner": "^3.1043.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "bullmq": "^5.7.0",
     "cors": "^2.8.5",

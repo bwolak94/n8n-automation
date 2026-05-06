@@ -9,6 +9,7 @@ declare global {
       };
       tenantId?: string;
       tenantRole?: TenantMemberRole;
+      tenantCustomPermissions?: string[];
     }
   }
 }

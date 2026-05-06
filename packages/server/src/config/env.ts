@@ -52,4 +52,7 @@ export const env = cleanEnv(process.env, {
 
   // Observability — Loki log shipping (empty string = disabled)
   LOKI_URL: str({ default: "" }),
+
+  // File storage — base directory for the local provider
+  STORAGE_LOCAL_PATH: str({ default: "/tmp/automation-hub-storage" }),
 });

@@ -67,7 +67,7 @@ async function main(): Promise<void> {
   );
 
   // ── Express app ─────────────────────────────────────────────────────────────
-  const app = createApp({ workflowQueue, dlqRepository, nodeRegistry: tenantNodeRegistry, prometheusMetrics });
+  const app = createApp({ workflowQueue, dlqRepository, nodeRegistry: tenantNodeRegistry, prometheusMetrics, resumableQueue: workflowQueue });
 
   // ── HTTP server (shared with Socket.io) ─────────────────────────────────────
   const httpServer = createServer(app);

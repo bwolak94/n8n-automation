@@ -6,6 +6,7 @@ interface ITenantMember extends Document {
   userId: string;
   email: string;
   role: TenantMemberRole;
+  customPermissions?: string[];
   joinedAt: Date;
 }
 
@@ -19,6 +20,7 @@ const tenantMemberSchema = new mongoose.Schema<ITenantMember>(
       enum: Object.values(TenantMemberRole),
       required: true,
     },
+    customPermissions: { type: [String], default: undefined },
     joinedAt: { type: Date, default: () => new Date() },
   },
   { timestamps: false }

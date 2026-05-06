@@ -21,6 +21,10 @@ export type { ISubWorkflowRunner } from "./SubWorkflowNode.js";
 export { WaitNode } from "./WaitNode.js";
 export { DataTransformNode } from "./DataTransformNode.js";
 export { FunctionNode } from "./FunctionNode.js";
+export { AIPromptNode } from "./AIPromptNode.js";
+export { FileStorageNode } from "./FileStorageNode.js";
+export { ApprovalNode } from "./ApprovalNode.js";
+export type { StorageProviderFactory } from "./FileStorageNode.js";
 // ── Integration nodes (built-in marketplace packages) ────────────────────────
 export { SlackNode } from "./SlackNode.js";
 export { TelegramNode } from "./TelegramNode.js";
