@@ -2,7 +2,9 @@ import type { Pool } from "pg";
 import { pgPool } from "../../config/database.js";
 import type {
   ExecutionLog,
+  ExecutionStep,
   IExecutionLogRepository,
+  SuspendedExecutionState,
 } from "../../engine/types.js";
 
 // ─── API-level types ──────────────────────────────────────────────────────────
@@ -89,10 +91,10 @@ export class ExecutionLogRepository implements IExecutionLogRepository {
   async create(log: Omit<ExecutionLog, "id">): Promise<ExecutionLog> {
     const { rows } = await this.pool.query<Record<string, unknown>>(
       `INSERT INTO executions
-         (tenant_id, workflow_id, status, trigger, started_at)
-       VALUES ($1, $2, $3, 'manual', $4)
-       RETURNING id, tenant_id, workflow_id, status, started_at`,
-      [log.tenantId, log.workflowId, log.status, log.startedAt]
+         (tenant_id, workflow_id, status, trigger, started_at, parent_execution_id)
+       VALUES ($1, $2, $3, 'manual', $4, $5)
+       RETURNING id, tenant_id, workflow_id, status, started_at, parent_execution_id`,
+      [log.tenantId, log.workflowId, log.status, log.startedAt, log.parentExecutionId ?? null]
     );
     const row = rows[0];
     return {
@@ -101,6 +103,7 @@ export class ExecutionLogRepository implements IExecutionLogRepository {
       workflowId: row["workflow_id"] as string,
       status: row["status"] as ExecutionLog["status"],
       startedAt: row["started_at"] as Date,
+      ...(row["parent_execution_id"] ? { parentExecutionId: row["parent_execution_id"] as string } : {}),
     };
   }
 
@@ -130,6 +133,45 @@ export class ExecutionLogRepository implements IExecutionLogRepository {
     values.push(id);
     await this.pool.query(
       `UPDATE executions SET ${sets.join(", ")} WHERE id = $${idx}`,
+      values
+    );
+  }
+
+  async createStep(step: Omit<ExecutionStep, "id">): Promise<ExecutionStep> {
+    const { rows } = await this.pool.query<Record<string, unknown>>(
+      `INSERT INTO execution_steps
+         (execution_id, node_id, node_type, status, input, started_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, execution_id, node_id, node_type, status, started_at`,
+      [step.executionId, step.nodeId, step.nodeType, step.status, step.input ? JSON.stringify(step.input) : null, step.startedAt]
+    );
+    const row = rows[0];
+    return {
+      id: row["id"] as string,
+      executionId: row["execution_id"] as string,
+      nodeId: row["node_id"] as string,
+      nodeType: row["node_type"] as string,
+      status: row["status"] as ExecutionStep["status"],
+      startedAt: row["started_at"] as Date,
+    };
+  }
+
+  async updateStep(id: string, updates: Partial<Omit<ExecutionStep, "id">>): Promise<void> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (updates.status !== undefined) { sets.push(`status = $${idx++}`); values.push(updates.status); }
+    if (updates.completedAt !== undefined) { sets.push(`completed_at = $${idx++}`); values.push(updates.completedAt); }
+    if (updates.durationMs !== undefined) { sets.push(`duration_ms = $${idx++}`); values.push(updates.durationMs); }
+    if (updates.output !== undefined) { sets.push(`output = $${idx++}`); values.push(JSON.stringify(updates.output)); }
+    if (updates.error !== undefined) { sets.push(`error = $${idx++}`); values.push(updates.error); }
+
+    if (sets.length === 0) return;
+
+    values.push(id);
+    await this.pool.query(
+      `UPDATE execution_steps SET ${sets.join(", ")} WHERE id = $${idx}`,
       values
     );
   }
@@ -183,5 +225,26 @@ export class ExecutionLogRepository implements IExecutionLogRepository {
       [id, tenantId]
     );
     return (rowCount ?? 0) > 0;
+  }
+
+  // ── Suspension / resume ────────────────────────────────────────────────────
+
+  async suspend(id: string, resumeAfter: Date, resumeData: SuspendedExecutionState): Promise<void> {
+    await this.pool.query(
+      `UPDATE executions
+         SET status = 'waiting', resume_after = $1, resume_data = $2
+       WHERE id = $3`,
+      [resumeAfter, JSON.stringify(resumeData), id]
+    );
+  }
+
+  async loadSuspendedState(id: string, tenantId: string): Promise<SuspendedExecutionState | null> {
+    const { rows } = await this.pool.query<{ resume_data: unknown }>(
+      `SELECT resume_data FROM executions
+       WHERE id = $1 AND tenant_id = $2 AND status = 'waiting'`,
+      [id, tenantId]
+    );
+    if (rows.length === 0 || rows[0]["resume_data"] === null) return null;
+    return rows[0]["resume_data"] as SuspendedExecutionState;
   }
 }

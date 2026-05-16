@@ -73,6 +73,12 @@ export class ExpressionEvaluator {
       case "trigger":
         current = context.trigger;
         break;
+      case "$credentials":
+        current = context.credentials ?? {};
+        break;
+      case "$item":
+        current = context.$item ?? {};
+        break;
       default:
         throw new ExpressionResolutionError(path);
     }

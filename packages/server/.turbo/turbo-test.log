@@ -1,0 +1,4 @@
+
+> @automation-hub/server@0.0.1 test /Users/bartoszwolak/PULPIT/XD/n8n-automation/packages/server
+> NODE_OPTIONS=--experimental-vm-modules jest --coverage "--coverage"
+

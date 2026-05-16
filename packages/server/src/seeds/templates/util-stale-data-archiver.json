@@ -1,0 +1,62 @@
+{
+  "name": "Stale Data Archiver",
+  "category": "Utilities",
+  "description": "Move old, infrequently-accessed records to archive tables to keep your primary tables lean and fast. Configurable retention period and archival strategy.",
+  "author": "platform",
+  "tags": ["archiving", "database", "cleanup", "performance", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Monthly on 1st at 2am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 2 1 * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Count Records to Archive",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT COUNT(*) AS count FROM execution_steps WHERE created_at < NOW() - INTERVAL '90 days'",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "Archive to Cold Storage",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "WITH archived AS (DELETE FROM execution_steps WHERE created_at < NOW() - INTERVAL '90 days' RETURNING *) INSERT INTO execution_steps_archive SELECT * FROM archived"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Report Archive Results",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "dba@example.com",
+        "subject": "Monthly Archive Complete: {{nodes.node-2.data.rows[0].count}} records archived",
+        "html": "<h2>Monthly Data Archival Complete</h2><p>Archived <strong>{{nodes.node-2.data.rows[0].count}}</strong> records from execution_steps (older than 90 days) to execution_steps_archive.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "Subscription Renewal Reminder",
+  "category": "CRM",
+  "description": "Send renewal reminder emails 30 days, 7 days, and 1 day before a subscription expires. Reduces involuntary churn and gives customers time to update billing.",
+  "author": "platform",
+  "tags": ["crm", "renewal", "subscription", "email", "retention"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 9am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 9 * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Find Expiring Subscriptions",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT email, name, plan, expires_at, EXTRACT(DAY FROM expires_at - NOW()) AS days_left FROM subscriptions WHERE status = 'active' AND EXTRACT(DAY FROM expires_at - NOW()) IN (30, 7, 1)",
+        "maxRows": 500
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "loop",
+      "category": "logic",
+      "label": "Email Each Expiring User",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "inputField": "rows",
+        "batchSize": 1,
+        "collectResults": false,
+        "continueOnError": true,
+        "maxIterations": 500
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Send Renewal Reminder",
+      "position": { "x": 850, "y": 200 },
+      "loopNodeId": "node-3",
+      "config": {
+        "transport": "smtp",
+        "to": "{{$item.value.email}}",
+        "subject": "Your {{$item.value.plan}} subscription expires in {{$item.value.days_left}} days",
+        "html": "<h2>Time to renew</h2><p>Hi {{$item.value.name}}, your subscription expires in <strong>{{$item.value.days_left}} days</strong>. <a href='https://billing.example.com/renew'>Renew now</a> to avoid interruption.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

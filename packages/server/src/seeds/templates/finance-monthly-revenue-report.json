@@ -1,0 +1,64 @@
+{
+  "name": "Monthly Revenue Report",
+  "category": "Finance",
+  "description": "Generate a comprehensive monthly revenue report from your database: MRR, new MRR, churned MRR, and net revenue retention. Emails to leadership on the 1st of each month.",
+  "author": "platform",
+  "tags": ["revenue", "mrr", "report", "finance", "schedule"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "1st of Month at 7am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 7 1 * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "MRR This Month",
+      "position": { "x": 350, "y": 100 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT SUM(mrr) AS current_mrr, COUNT(*) AS active_customers FROM subscriptions WHERE status = 'active'",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "New & Churned MRR",
+      "position": { "x": 350, "y": 320 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT SUM(CASE WHEN event_type = 'new' THEN mrr ELSE 0 END) AS new_mrr, SUM(CASE WHEN event_type = 'churn' THEN mrr ELSE 0 END) AS churned_mrr FROM mrr_events WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Email Report to Leadership",
+      "position": { "x": 750, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "leadership@example.com",
+        "subject": "Monthly Revenue Report",
+        "html": "<h2>Monthly Revenue Summary</h2><table><tr><td>Current MRR</td><td><strong>${{nodes.node-2.data.rows[0].current_mrr}}</strong></td></tr><tr><td>Active Customers</td><td>{{nodes.node-2.data.rows[0].active_customers}}</td></tr><tr><td>New MRR</td><td>${{nodes.node-3.data.rows[0].new_mrr}}</td></tr><tr><td>Churned MRR</td><td>-${{nodes.node-3.data.rows[0].churned_mrr}}</td></tr></table>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-1-3", "source": "node-1", "target": "node-3" },
+    { "id": "e-2-4", "source": "node-2", "target": "node-4" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

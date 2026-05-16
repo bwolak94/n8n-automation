@@ -21,6 +21,10 @@ export const WorkflowNodeSchema = z.object({
   }),
   config: NodeConfigSchema,
   retryPolicy: RetryPolicySchema.optional(),
+  /** ID of the LoopNode this node belongs to (marks it as a loop-scoped inner node). */
+  loopNodeId: z.string().optional(),
+  /** Logical group label for canvas grouping (e.g. the loop container label). */
+  loopGroup: z.string().optional(),
 });
 
 export const WorkflowEdgeSchema = z.object({
@@ -51,6 +55,16 @@ export const CreateWorkflowSchema = WorkflowSchema.omit({
   updatedAt: true,
 }).extend({
   status: z.nativeEnum(WorkflowStatus).default(WorkflowStatus.DRAFT),
+  nodes: z.array(WorkflowNodeSchema).default([]),
+  edges: z.array(WorkflowEdgeSchema).default([]),
 });
 
-export const UpdateWorkflowSchema = CreateWorkflowSchema.partial();
+export const UpdateWorkflowSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.nativeEnum(WorkflowStatus).optional(),
+  nodes: z.array(WorkflowNodeSchema).optional(),
+  edges: z.array(WorkflowEdgeSchema).optional(),
+  variables: z.record(z.unknown()).optional(),
+  tags: z.array(z.string()).optional(),
+});

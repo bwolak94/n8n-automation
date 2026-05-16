@@ -1,0 +1,62 @@
+{
+  "name": "Scheduled DB Vacuum & Analyze",
+  "category": "Utilities",
+  "description": "Run VACUUM ANALYZE on key PostgreSQL tables weekly to reclaim space and update query planner statistics. Reports table sizes before and after.",
+  "author": "platform",
+  "tags": ["postgres", "vacuum", "maintenance", "database", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Sunday at 3am",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 3 * * 0", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Get Table Sizes (Before)",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT tablename, pg_size_pretty(pg_total_relation_size(schemaname || '.' || tablename)) AS size FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC LIMIT 10",
+        "maxRows": 10
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "Run VACUUM ANALYZE",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "VACUUM ANALYZE events; VACUUM ANALYZE execution_steps; VACUUM ANALYZE audit_logs; VACUUM ANALYZE workflow_executions;"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Report Completion",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "dba@example.com",
+        "subject": "Weekly DB Maintenance Complete",
+        "html": "<h2>Database Maintenance Complete</h2><h3>Top Table Sizes</h3><pre>{{nodes.node-2.data.rows}}</pre><p>VACUUM ANALYZE completed successfully.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

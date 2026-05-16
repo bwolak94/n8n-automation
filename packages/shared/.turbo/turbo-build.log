@@ -1,0 +1,4 @@
+
+> @automation-hub/shared@0.0.1 build /Users/bartoszwolak/PULPIT/XD/n8n-automation/packages/shared
+> tsc --project tsconfig.json
+

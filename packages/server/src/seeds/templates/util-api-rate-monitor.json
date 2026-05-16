@@ -1,0 +1,75 @@
+{
+  "name": "API Rate Limit Monitor",
+  "category": "Utilities",
+  "description": "Monitor your API rate limit consumption across third-party services. Alert when you're approaching limits to prevent unexpected 429 errors in production.",
+  "author": "platform",
+  "tags": ["rate-limit", "api", "monitoring", "utilities", "throttling"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Hour",
+      "position": { "x": 100, "y": 200 },
+      "config": { "cron": "0 * * * *", "timezone": "UTC" }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Count API Calls This Hour",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT api_name, COUNT(*) AS calls_this_hour, MAX(rate_limit) AS limit FROM api_call_log WHERE called_at >= DATE_TRUNC('hour', NOW()) GROUP BY api_name",
+        "maxRows": 50
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "logic",
+      "label": "Find APIs Near Limit",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const rows = $input.rows || [];\nconst nearLimit = rows.filter(r => r.limit > 0 && (r.calls_this_hour / r.limit) >= 0.8);\nreturn { nearLimit, hasWarnings: nearLimit.length > 0 };",
+        "timeoutMs": 2000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "conditional",
+      "category": "logic",
+      "label": "Any Near Limit?",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "mode": "if",
+        "conditions": [
+          { "field": "{{nodes.node-3.data.hasWarnings}}", "operator": "equals", "value": "true" }
+        ],
+        "combinator": "and"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "email",
+      "category": "communication",
+      "label": "Alert Engineering",
+      "position": { "x": 1100, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "engineering@example.com",
+        "subject": "Warning: API rate limits approaching",
+        "html": "<h2>API Rate Limit Warning</h2><p>The following APIs are at 80%+ of their hourly rate limits:</p><pre>{{nodes.node-3.data.nearLimit}}</pre>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" },
+    { "id": "e-4-5", "source": "node-4", "target": "node-5", "sourceHandle": "true" }
+  ]
+}

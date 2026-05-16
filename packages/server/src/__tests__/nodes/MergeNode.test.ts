@@ -1,177 +1,235 @@
-import { describe, expect, it } from "@jest/globals";
-import { MergeNode } from "../../nodes/implementations/MergeNode.js";
+import { describe, it, expect, beforeEach } from "@jest/globals";
+import { MergeNode, MERGE_PENDING_KEY } from "../../nodes/implementations/MergeNode.js";
+import { InMemoryBranchSyncManager } from "../../engine/BranchSyncManager.js";
 import type { ExecutionContext } from "../../nodes/contracts/INode.js";
 
-// ─── Fixtures ────────────────────────────────────────────────────────────────
-
-const ctx: ExecutionContext = {
-  tenantId: "t-1",
-  executionId: "exec-1",
-  workflowId: "wf-1",
-  variables: {},
-};
-
-const node = new MergeNode();
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
+function makeCtx(nodeId = "merge-1"): ExecutionContext {
+  return {
+    tenantId: "t-1",
+    executionId: "exec-1",
+    workflowId: "wf-1",
+    nodeId,
+    variables: {},
+  };
+}
 
 describe("MergeNode", () => {
+  let sync: InMemoryBranchSyncManager;
+  let node: MergeNode;
+
+  beforeEach(() => {
+    sync = new InMemoryBranchSyncManager();
+    node = new MergeNode(sync);
+  });
+
   it("has correct definition type", () => {
     expect(node.definition.type).toBe("merge");
   });
 
-  // ── concat ───────────────────────────────────────────────────────────────
+  // ── waitAll — single-branch calls ──────────────────────────────────────────
 
-  describe("concat strategy", () => {
-    it("flattens array branches into a single array", async () => {
+  describe("waitAll mode — single-branch calls", () => {
+    it("returns MERGE_PENDING on first call when inputCount=2", async () => {
       const out = await node.execute(
-        [[1, 2], [3, 4], [5]],
-        { strategy: "concat" },
-        ctx
+        { name: "Alice" },
+        { mode: "waitAll", inputCount: 2, branchIndex: 0 },
+        makeCtx()
       );
-      expect((out.data as { merged: unknown }).merged).toEqual([1, 2, 3, 4, 5]);
+      expect(out.metadata?.[MERGE_PENDING_KEY]).toBe(true);
     });
 
-    it("wraps non-array scalars as single-element arrays", async () => {
-      const out = await node.execute(
-        ["hello", "world"],
-        { strategy: "concat" },
+    it("returns merged output on last call (all branches arrived)", async () => {
+      const ctx = makeCtx();
+      await node.execute(
+        { name: "Alice" },
+        { mode: "waitAll", inputCount: 2, branchIndex: 0 },
         ctx
       );
-      expect((out.data as { merged: unknown }).merged).toEqual(["hello", "world"]);
+      const out = await node.execute(
+        { score: 99 },
+        { mode: "waitAll", inputCount: 2, branchIndex: 1 },
+        ctx
+      );
+      const data = out.data as { branches: unknown[]; branchCount: number };
+      expect(data.branchCount).toBe(2);
+      expect(data.branches).toEqual([{ name: "Alice" }, { score: 99 }]);
+    });
+
+    it("returns branches in branchIndex order, not arrival order", async () => {
+      const ctx = makeCtx();
+      // Branch 1 arrives first, then branch 0
+      await node.execute(
+        { second: true },
+        { mode: "waitAll", inputCount: 2, branchIndex: 1 },
+        ctx
+      );
+      const out = await node.execute(
+        { first: true },
+        { mode: "waitAll", inputCount: 2, branchIndex: 0 },
+        ctx
+      );
+      const data = out.data as { branches: unknown[] };
+      expect(data.branches[0]).toEqual({ first: true });
+      expect(data.branches[1]).toEqual({ second: true });
     });
   });
 
-  // ── zip ──────────────────────────────────────────────────────────────────
+  // ── waitAll — array input (WorkflowRunner multi-input) ────────────────────
 
-  describe("zip strategy", () => {
-    it("zips two equal-length arrays element by element", async () => {
+  describe("waitAll mode — array input", () => {
+    it("merges all branches when array is passed", async () => {
       const out = await node.execute(
-        [[1, 2, 3], ["a", "b", "c"]],
-        { strategy: "zip" },
-        ctx
+        [{ a: 1 }, { b: 2 }],
+        { mode: "waitAll" },
+        makeCtx()
       );
-      expect((out.data as { merged: unknown }).merged).toEqual([
-        [1, "a"],
-        [2, "b"],
-        [3, "c"],
+      const data = out.data as { branches: unknown[]; branchCount: number };
+      expect(data.branchCount).toBe(2);
+      expect(data.branches).toEqual([{ a: 1 }, { b: 2 }]);
+    });
+
+    it("unwraps NodeOutput wrappers in array input", async () => {
+      const out = await node.execute(
+        [{ data: { x: 1 } }, { data: { y: 2 } }],
+        { mode: "waitAll" },
+        makeCtx()
+      );
+      const data = out.data as { branches: unknown[] };
+      // NodeOutput { data: { x: 1 } } → unwrapped to { x: 1 }
+      expect(data.branches[0]).toEqual({ x: 1 });
+      expect(data.branches[1]).toEqual({ y: 2 });
+    });
+
+    it("cleans up Redis state after merge", async () => {
+      const ctx = makeCtx();
+      await node.execute([{ a: 1 }, { b: 2 }], { mode: "waitAll" }, ctx);
+      // After merge, bucket should be empty
+      const count = await sync.getCount(ctx.executionId, ctx.nodeId!);
+      expect(count).toBe(0);
+    });
+  });
+
+  // ── mergeByKey ────────────────────────────────────────────────────────────
+
+  describe("mergeByKey mode", () => {
+    it("inner join: merges matching objects and excludes non-matching", async () => {
+      const branches = [
+        [{ userId: 1, name: "Alice" }, { userId: 2, name: "Bob" }],
+        [{ userId: 1, score: 99 }],
+      ];
+      const out = await node.execute(
+        branches,
+        { mode: "mergeByKey", joinKey: "userId", joinType: "inner" },
+        makeCtx()
+      );
+      expect(out.data).toEqual([{ userId: 1, name: "Alice", score: 99 }]);
+    });
+
+    it("left join: preserves all left-branch items, unmatched right items skipped", async () => {
+      const branches = [
+        [{ userId: 1, name: "Alice" }, { userId: 2, name: "Bob" }],
+        [{ userId: 1, score: 99 }],
+      ];
+      const out = await node.execute(
+        branches,
+        { mode: "mergeByKey", joinKey: "userId", joinType: "left" },
+        makeCtx()
+      );
+      expect(out.data).toEqual([
+        { userId: 1, name: "Alice", score: 99 },
+        { userId: 2, name: "Bob" },
       ]);
     });
 
-    it("handles mismatched lengths by using undefined for short arrays", async () => {
+    it("merges plain objects (non-array branches) by key", async () => {
       const out = await node.execute(
-        [[1, 2], ["a"]],
-        { strategy: "zip" },
-        ctx
+        [{ userId: 1, name: "Alice" }, { userId: 1, score: 99 }],
+        { mode: "mergeByKey", joinKey: "userId", joinType: "inner" },
+        makeCtx()
       );
-      const merged = (out.data as { merged: unknown[] }).merged;
-      expect(merged).toHaveLength(2);
-    });
-
-    it("returns empty array when no array branches present", async () => {
-      const out = await node.execute(
-        ["not-array"],
-        { strategy: "zip" },
-        ctx
-      );
-      expect((out.data as { merged: unknown }).merged).toEqual([]);
+      expect(out.data).toEqual([{ userId: 1, name: "Alice", score: 99 }]);
     });
   });
 
-  // ── first / last ─────────────────────────────────────────────────────────
+  // ── append ────────────────────────────────────────────────────────────────
 
-  describe("first strategy", () => {
-    it("returns the first branch output", async () => {
+  describe("append mode", () => {
+    it("concatenates arrays from all branches", async () => {
       const out = await node.execute(
-        ["first-value", "second-value"],
-        { strategy: "first" },
-        ctx
+        [[1, 2, 3], [4, 5]],
+        { mode: "append" },
+        makeCtx()
       );
-      expect((out.data as { merged: unknown }).merged).toBe("first-value");
+      expect(out.data).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("wraps non-array branch data as single-element arrays", async () => {
+      const out = await node.execute(
+        ["alpha", "beta"],
+        { mode: "append" },
+        makeCtx()
+      );
+      expect(out.data).toEqual(["alpha", "beta"]);
     });
   });
 
-  describe("last strategy", () => {
-    it("returns the last branch output", async () => {
+  // ── firstWins ─────────────────────────────────────────────────────────────
+
+  describe("firstWins mode", () => {
+    it("first arrival returns its data immediately", async () => {
       const out = await node.execute(
-        ["first-value", "second-value", "third-value"],
-        { strategy: "last" },
+        { winner: true },
+        { mode: "firstWins", inputCount: 3, branchIndex: 0 },
+        makeCtx()
+      );
+      expect(out.data).toEqual({ winner: true });
+    });
+
+    it("second arrival is discarded (returns pending sentinel)", async () => {
+      const ctx = makeCtx();
+      await node.execute(
+        { winner: true },
+        { mode: "firstWins", inputCount: 3, branchIndex: 0 },
         ctx
       );
-      expect((out.data as { merged: unknown }).merged).toBe("third-value");
+      const out = await node.execute(
+        { late: true },
+        { mode: "firstWins", inputCount: 3, branchIndex: 1 },
+        ctx
+      );
+      expect(out.metadata?.[MERGE_PENDING_KEY]).toBe(true);
+    });
+
+    it("array input: first element wins", async () => {
+      const out = await node.execute(
+        [{ fast: true }, { slow: true }],
+        { mode: "firstWins" },
+        makeCtx()
+      );
+      expect(out.data).toEqual({ fast: true });
     });
   });
 
-  // ── merge_objects ─────────────────────────────────────────────────────────
+  // ── inputCount validation ─────────────────────────────────────────────────
 
-  describe("merge_objects strategy", () => {
-    it("merges object branches using Object.assign semantics", async () => {
-      const out = await node.execute(
-        [{ a: 1, b: 2 }, { b: 99, c: 3 }],
-        { strategy: "merge_objects" },
-        ctx
-      );
-      expect((out.data as { merged: unknown }).merged).toEqual({
-        a: 1,
-        b: 99,
-        c: 3,
-      });
-    });
-
-    it("ignores non-object branches", async () => {
-      const out = await node.execute(
-        [{ a: 1 }, "ignored-string", null, { b: 2 }],
-        { strategy: "merge_objects" },
-        ctx
-      );
-      expect((out.data as { merged: unknown }).merged).toEqual({ a: 1, b: 2 });
-    });
+  it("defaults inputCount to 2 when not provided", async () => {
+    const ctx = makeCtx();
+    await node.execute({ a: 1 }, { mode: "waitAll", branchIndex: 0 }, ctx);
+    const out = await node.execute({ b: 2 }, { mode: "waitAll", branchIndex: 1 }, ctx);
+    // Should complete on second call (inputCount defaulted to 2)
+    expect((out.data as { branchCount: number }).branchCount).toBe(2);
   });
 
-  // ── waitFor ──────────────────────────────────────────────────────────────
+  it("handles 3-branch waitAll correctly", async () => {
+    const ctx = makeCtx();
+    const config = { mode: "waitAll" as const, inputCount: 3 };
+    const p0 = await node.execute("A", { ...config, branchIndex: 0 }, ctx);
+    const p1 = await node.execute("B", { ...config, branchIndex: 1 }, ctx);
+    const p2 = await node.execute("C", { ...config, branchIndex: 2 }, ctx);
 
-  describe("waitFor validation", () => {
-    it("passes when branch count meets waitFor", async () => {
-      const out = await node.execute(
-        ["a", "b", "c"],
-        { strategy: "first", waitFor: 3 },
-        ctx
-      );
-      expect(out.data).toBeDefined();
-    });
-
-    it("passes when branch count exceeds waitFor", async () => {
-      const out = await node.execute(
-        ["a", "b", "c", "d"],
-        { strategy: "last", waitFor: 2 },
-        ctx
-      );
-      expect(out.data).toBeDefined();
-    });
-
-    it("throws MERGE_INSUFFICIENT_BRANCHES when below waitFor", async () => {
-      await expect(
-        node.execute(["only-one"], { strategy: "concat", waitFor: 3 }, ctx)
-      ).rejects.toMatchObject({ code: "MERGE_INSUFFICIENT_BRANCHES" });
-    });
-  });
-
-  // ── Non-array input normalisation ─────────────────────────────────────────
-
-  it("wraps a single non-array value as a one-element branch list", async () => {
-    const out = await node.execute(
-      "single-value",
-      { strategy: "first" },
-      ctx
-    );
-    expect((out.data as { merged: unknown }).merged).toBe("single-value");
-  });
-
-  // ── Error cases ───────────────────────────────────────────────────────────
-
-  it("throws MERGE_MISSING_STRATEGY when strategy is absent", async () => {
-    await expect(
-      node.execute(["a"], {}, ctx)
-    ).rejects.toMatchObject({ code: "MERGE_MISSING_STRATEGY" });
+    expect(p0.metadata?.[MERGE_PENDING_KEY]).toBe(true);
+    expect(p1.metadata?.[MERGE_PENDING_KEY]).toBe(true);
+    const data = p2.data as { branches: unknown[] };
+    expect(data.branches).toEqual(["A", "B", "C"]);
   });
 });

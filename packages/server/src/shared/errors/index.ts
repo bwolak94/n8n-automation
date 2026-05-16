@@ -7,3 +7,4 @@ export { PlanLimitError } from "./PlanLimitError.js";
 export { UnknownNodeTypeError } from "./UnknownNodeTypeError.js";
 export { CyclicWorkflowError } from "./CyclicWorkflowError.js";
 export { ExpressionResolutionError } from "./ExpressionResolutionError.js";
+export { SubWorkflowDepthError, MAX_SUB_WORKFLOW_DEPTH } from "./SubWorkflowDepthError.js";

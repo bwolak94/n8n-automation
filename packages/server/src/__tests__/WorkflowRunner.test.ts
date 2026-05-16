@@ -56,6 +56,15 @@ function makeExecutionLogRepo(log: ExecutionLog): IExecutionLogRepository {
   return {
     create: jest.fn(async () => log) as IExecutionLogRepository["create"],
     update: jest.fn(async () => {}) as IExecutionLogRepository["update"],
+    createStep: jest.fn(async (_step) => ({
+      id: "step-1",
+      executionId: log.id,
+      nodeId: "n1",
+      nodeType: "http",
+      status: "running" as const,
+      startedAt: new Date(),
+    })) as IExecutionLogRepository["createStep"],
+    updateStep: jest.fn(async () => {}) as IExecutionLogRepository["updateStep"],
   };
 }
 

@@ -1,0 +1,51 @@
+{
+  "name": "Daily Database Report",
+  "category": "Data Processing",
+  "description": "Query your database every day and email a summary report to your team. Uses a schedule trigger and a database query node.",
+  "author": "platform",
+  "tags": ["database", "report", "email", "schedule", "daily"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Daily at 8am",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "cron": "0 8 * * *",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Query Daily Stats",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT COUNT(*) AS total_orders, SUM(amount) AS revenue FROM orders WHERE created_at >= NOW() - INTERVAL '1 day'",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "email",
+      "category": "communication",
+      "label": "Email Report",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "team@example.com",
+        "subject": "Daily Report — {{nodes.node-1.data.date}}",
+        "html": "<h2>Daily Stats</h2><p>Total Orders: <strong>{{nodes.node-2.data.rows[0].total_orders}}</strong></p><p>Revenue: <strong>${{nodes.node-2.data.rows[0].revenue}}</strong></p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" }
+  ]
+}

@@ -31,6 +31,7 @@ export async function tenantContext(
 
     req.tenantId = tenantId;
     req.tenantRole = member.role;
+    req.tenantCustomPermissions = (member as { customPermissions?: string[] }).customPermissions ?? undefined;
     next();
   } catch (error) {
     next(error);

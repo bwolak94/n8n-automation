@@ -1,0 +1,63 @@
+{
+  "name": "Weekly CRM Digest",
+  "category": "CRM",
+  "description": "Every Monday morning, query your CRM database for new leads from the past week and email a digest to your sales team.",
+  "author": "platform",
+  "tags": ["crm", "sales", "weekly", "leads", "report", "email"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Every Monday 7am",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "cron": "0 7 * * 1",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Fetch New Leads",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "SELECT name, email, company, created_at FROM leads WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC",
+        "maxRows": 100
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "function",
+      "category": "data",
+      "label": "Build HTML Table",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "code": "const rows = $input.data.rows || [];\nconst tableRows = rows.map(r => `<tr><td>${r.name}</td><td>${r.email}</td><td>${r.company}</td><td>${r.created_at}</td></tr>`).join('');\nreturn { html: `<table border=\"1\"><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Date</th></tr></thead><tbody>${tableRows}</tbody></table>`, count: rows.length };",
+        "timeoutMs": 5000
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Sales Team Digest",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "sales@example.com",
+        "subject": "Weekly Leads Digest — {{nodes.node-3.data.count}} new leads",
+        "html": "<h2>New Leads This Week</h2>{{nodes.node-3.data.html}}"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

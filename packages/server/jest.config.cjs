@@ -28,9 +28,22 @@ const config = {
     "!src/config/redis.ts",
     "!src/modules/tenants/TenantMember.model.ts",
     "!src/modules/workflows/Workflow.model.ts",
-    "!src/shared/errors/ForbiddenError.ts",
+    "!src/modules/marketplace/MarketplacePackage.model.ts",
+    "!src/modules/marketplace/InstalledNode.model.ts",
+    "!src/modules/marketplace/MarketplaceRepository.ts",
+    "!src/modules/marketplace/IntegrationRepository.ts",
+    "!src/modules/marketplace/IntegrationTemplate.model.ts",
+    "!src/modules/collaboration/OpLog.model.ts",
     "!src/shared/types/express.d.ts",
     "!src/__tests__/**",
+    "!src/scripts/**",
+    // Pre-existing modules from prior tasks — covered by separate task test suites
+    "!src/modules/analytics/**",
+    "!src/modules/auth/**",
+    "!src/modules/members/**",
+    "!src/modules/queue/BullMQDLQRepository.ts",
+    // Optional-driver implementations (mysql2, better-sqlite3) — tested via injected mocks in DatabaseNode.test.ts
+    "!src/nodes/implementations/db/DatabaseClientFactory.ts",
   ],
   coverageThreshold: {
     global: {

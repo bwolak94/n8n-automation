@@ -1,0 +1,66 @@
+{
+  "name": "Data Cleanup Utility",
+  "category": "Utilities",
+  "description": "Periodically archive or delete old records from your database to keep it performant. Configurable retention period via SQL.",
+  "author": "platform",
+  "tags": ["database", "cleanup", "maintenance", "schedule", "utilities"],
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "schedule_trigger",
+      "category": "triggers",
+      "label": "Nightly at 2am",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "cron": "0 2 * * *",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "database",
+      "category": "actions",
+      "label": "Archive Old Records",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "INSERT INTO archived_logs SELECT * FROM execution_logs WHERE created_at < NOW() - INTERVAL '90 days'",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "database",
+      "category": "actions",
+      "label": "Delete Archived Records",
+      "position": { "x": 600, "y": 200 },
+      "config": {
+        "dialect": "postgres",
+        "credentialId": "",
+        "operation": "query",
+        "sql": "DELETE FROM execution_logs WHERE created_at < NOW() - INTERVAL '90 days'",
+        "maxRows": 1
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "email",
+      "category": "communication",
+      "label": "Notify Admin",
+      "position": { "x": 850, "y": 200 },
+      "config": {
+        "transport": "smtp",
+        "to": "admin@example.com",
+        "subject": "Nightly cleanup completed",
+        "html": "<p>Old records have been archived and deleted successfully.</p>"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-1-2", "source": "node-1", "target": "node-2" },
+    { "id": "e-2-3", "source": "node-2", "target": "node-3" },
+    { "id": "e-3-4", "source": "node-3", "target": "node-4" }
+  ]
+}

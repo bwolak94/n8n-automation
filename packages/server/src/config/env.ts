@@ -10,6 +10,7 @@ export const env = cleanEnv(process.env, {
   // Authentication
   JWT_SECRET: str(),
   JWT_EXPIRES_IN: str({ default: "7d" }),
+  INVITE_SECRET: str({ default: "invite-secret-change-in-production" }),
 
   // MongoDB
   MONGODB_URI: str(),
@@ -30,10 +31,28 @@ export const env = cleanEnv(process.env, {
   // CORS
   CORS_ORIGIN: str({ default: "http://localhost:5173" }),
 
+  // Public base URL (used to build webhook URLs)
+  BASE_URL: str({ default: "http://localhost:3000" }),
+
   // Stripe (optional — billing features)
   STRIPE_SECRET_KEY: str({ default: "" }),
   STRIPE_WEBHOOK_SECRET: str({ default: "" }),
 
   // Anthropic (optional — AI node)
   ANTHROPIC_API_KEY: str({ default: "" }),
+
+  // Marketplace
+  MARKETPLACE_UPLOAD_DIR: str({ default: "uploads/marketplace" }),
+
+  // Credential vault — 32-byte master key as 64 hex chars
+  MASTER_ENCRYPTION_KEY: str({ default: "0000000000000000000000000000000000000000000000000000000000000000" }),
+
+  // Audit log retention — number of days before old records are deleted
+  AUDIT_LOG_RETENTION_DAYS: num({ default: 365 }),
+
+  // Observability — Loki log shipping (empty string = disabled)
+  LOKI_URL: str({ default: "" }),
+
+  // File storage — base directory for the local provider
+  STORAGE_LOCAL_PATH: str({ default: "/tmp/automation-hub-storage" }),
 });
